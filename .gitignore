@@ -1,0 +1,29 @@
+# Dependências
+node_modules/
+.npm
+
+# Build
+dist/
+dist-ssr/
+
+# Ambiente local (NUNCA suba isso!)
+.env
+.env.local
+.env.*.local
+
+# Cache do Vite
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
