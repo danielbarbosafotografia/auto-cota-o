@@ -107,12 +107,7 @@ Link oficial: ${window.location.href}`;
       <header className="bg-white border-b border-gray-200 py-6 sticky top-0 z-50">
         <div className="max-w-xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <ShieldCheck className="text-white" size={24} />
-            </div>
-            <div>
-              <h1 className="font-black text-xl tracking-tight uppercase italic">Auto <span className="text-primary">Excelência</span></h1>
-            </div>
+            <img src="/logo.png" alt="Auto Excelência" className="h-10 w-auto object-contain" />
           </div>
           <button onClick={handleWhatsApp} className="btn-primary text-xs py-2 px-4 flex items-center gap-2">
             <MessageSquare size={14} /> Falar com Consultor
@@ -138,6 +133,14 @@ Link oficial: ${window.location.href}`;
               <div><span className="text-gray-500 block text-xs">Participação de evento</span><strong className="text-gray-800">R$ {Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
+              {(quote as any).consultant_name && (
+                <>
+                  <div className="col-span-2 border-t border-gray-100 pt-3 mt-2">
+                    <span className="text-primary font-bold block text-xs uppercase tracking-widest mb-1">Responsável pelo Atendimento</span>
+                    <strong className="text-gray-800">{(quote as any).consultant_name} — {(quote as any).consultant_city}/SC</strong>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="mt-6 bg-secondary text-white rounded-2xl p-6 text-center shadow-xl shadow-secondary/20 relative overflow-hidden">
@@ -264,7 +267,7 @@ Link oficial: ${window.location.href}`;
         </section>
 
         {/* CTA */}
-        <div className="pt-4">
+        <div className="pt-4 space-y-4">
           <button 
             onClick={handleWhatsApp}
             className="btn-primary w-full py-5 text-lg flex items-center justify-center gap-3 shadow-2xl shadow-primary/30"
@@ -272,6 +275,12 @@ Link oficial: ${window.location.href}`;
             <MessageSquare size={24} />
             Quero me associar agora
           </button>
+          
+          {(quote as any).consultant_name && (
+            <p className="text-center text-xs text-gray-500">
+              Consultor: <strong className="text-gray-700">{(quote as any).consultant_name}</strong> — {(quote as any).consultant_city}/SC
+            </p>
+          )}
         </div>
 
       </main>

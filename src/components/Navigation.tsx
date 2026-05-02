@@ -39,13 +39,7 @@ export const Sidebar = () => {
   return (
     <div className="hidden md:flex flex-col w-64 bg-secondary text-white h-screen sticky top-0 p-4">
       <div className="flex items-center gap-3 px-2 mb-10 mt-4">
-        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-          <ShieldCheck className="text-white" size={24} />
-        </div>
-        <div>
-          <h1 className="font-bold text-lg leading-tight">Auto Cotação</h1>
-          <p className="text-xs text-gray-400">Auto Excelência</p>
-        </div>
+        <img src="/logo.png" alt="Auto Excelência" className="h-10 w-auto object-contain bg-white p-1 rounded-md" />
       </div>
 
       <nav className="flex-1 space-y-1">

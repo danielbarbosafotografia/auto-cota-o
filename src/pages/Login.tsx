@@ -52,11 +52,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-3xl shadow-xl shadow-primary/20 mb-6">
-            <ShieldCheck className="text-white" size={40} />
-          </div>
-          <h1 className="text-3xl font-bold text-secondary mb-2">Auto Cotação</h1>
-          <p className="text-gray-500">Auto Excelência Proteção Veicular</p>
+          <img src="/logo.png" alt="Auto Excelência" className="h-20 w-auto object-contain mx-auto mb-6" />
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">

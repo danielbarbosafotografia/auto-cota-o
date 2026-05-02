@@ -15,9 +15,11 @@ import {
   ChevronLeft,
   Check,
   Send,
-  Download,
+  Printer,
   Save,
-  Loader2
+  Loader2,
+  Copy,
+  ArrowLeft
 } from 'lucide-react';
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
@@ -27,6 +29,8 @@ const NovaCotacao = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Form State
   const [client, setClient] = useState({ name: '', whatsapp: '' });
@@ -210,6 +214,8 @@ const NovaCotacao = () => {
           fipe_value: Number(vehicle.fipeValue),
           category_id: vehicle.category,
           category_name: result.categoryName,
+          consultant_name: localStorage.getItem('consultor_nome'),
+          consultant_city: localStorage.getItem('consultor_cidade'),
           base_monthly_value: result.baseMonthlyValue,
           addons_total: result.addonsTotal,
           final_monthly_value: result.finalMonthlyValue,
@@ -234,7 +240,7 @@ const NovaCotacao = () => {
         await supabase.from('quote_addons').insert(quoteAddons);
       }
 
-      navigate(`/p/${slug}`);
+      setSavedSlug(slug);
     } catch (error) {
       console.error('Error saving quote:', error);
       alert('Erro ao salvar cotação.');
@@ -244,25 +250,30 @@ const NovaCotacao = () => {
   };
 
   const handleWhatsApp = (slug?: string) => {
-    if (!result) return;
-    const finalSlug = slug || 'TODO';
-    const message = `Olá! A cotação da sua proteção veicular Auto Excelência está pronta!
-
-*🚗 DADOS DA COTAÇÃO*
-Modelo: ${vehicle.brand} ${vehicle.model}
-Placa: ${vehicle.plate || '---'}
-Código FIPE: ${vehicle.fipeCode || '---'}
-Valor FIPE: R$ ${Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-
-*🎯 TOTAL DA MENSALIDADE: R$ ${result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
-
-Acesse o link abaixo para ver todos os benefícios e assistências 24h inclusas:
-${window.location.origin}/p/${finalSlug}`;
+    const finalSlug = slug || savedSlug || 'TODO';
+    const message = `Olá, segue sua cotação da Auto Excelência:\n${window.location.origin}/p/${finalSlug}`;
     window.open(`https://wa.me/55${client.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const handleCopyLink = () => {
+    if (!savedSlug) return;
+    navigator.clipboard.writeText(`${window.location.origin}/p/${savedSlug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePrint = () => {
+    window.open(`/p/${savedSlug}`, '_blank');
   };
 
   return (
     <div className="max-w-2xl mx-auto pb-10">
+      <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6 flex flex-col items-center text-center">
+        <p className="text-sm font-medium text-gray-700">Bem-vindo ao sistema oficial da Auto Excelência.</p>
+        <p className="text-sm text-gray-600 mt-1">Você está acessando como <strong className="text-primary">{localStorage.getItem('consultor_nome') || 'Consultor'}</strong> — <strong className="text-primary">{localStorage.getItem('consultor_cidade') || 'Cidade'}/SC</strong>.</p>
+        <p className="text-sm text-gray-600 mt-1">Comece gerando uma nova cotação.</p>
+      </div>
+
       {/* Stepper Header */}
       <div className="flex items-center justify-between mb-8 px-2">
         {[1, 2, 3, 4].map((i) => (
@@ -546,26 +557,37 @@ ${window.location.origin}/p/${finalSlug}`;
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={saveQuote} 
-              disabled={saving}
-              className="btn-primary flex items-center justify-center gap-2 py-4"
-            >
-              {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-              Salvar Cotação
-            </button>
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => handleWhatsApp()} className="btn-secondary flex items-center justify-center gap-2 bg-green-50 border-green-200 text-green-700">
-                <Send size={18} />
-                WhatsApp
-              </button>
-              <button className="btn-secondary flex items-center justify-center gap-2">
-                <Download size={18} />
-                PDF
+          {!savedSlug ? (
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={saveQuote} 
+                disabled={saving}
+                className="btn-primary flex items-center justify-center gap-2 py-4"
+              >
+                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                Salvar Cotação
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-3 mt-6">
+              <button onClick={handleCopyLink} className="btn-primary flex items-center justify-center gap-2 py-4">
+                <Copy size={20} />
+                {copied ? 'Link copiado com sucesso!' : 'Copiar link da cotação'}
+              </button>
+              <button onClick={() => handleWhatsApp()} className="btn-secondary flex items-center justify-center gap-2 bg-green-50 border-green-200 text-green-700 py-3">
+                <Send size={18} />
+                Enviar no WhatsApp
+              </button>
+              <button onClick={() => { setStep(1); setSavedSlug(null); setClient({name:'', whatsapp:''}); setVehicle({...vehicle, plate:''}); }} className="btn-secondary flex items-center justify-center gap-2 py-3">
+                <ArrowLeft size={18} />
+                Voltar (Nova Cotação)
+              </button>
+              <button onClick={handlePrint} className="btn-secondary flex items-center justify-center gap-2 py-3">
+                <Printer size={18} />
+                Imprimir
+              </button>
+            </div>
+          )}
         </div>
       )}
 
