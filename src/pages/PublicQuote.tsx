@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Quote, QuoteAddon } from '../types';
-import { ShieldCheck, Car, Phone, Calendar, CheckCircle2, MessageSquare } from 'lucide-react';
+import type { Quote, QuoteAddon, PricingRule } from '../types';
+import { ShieldCheck, Car, Calendar, CheckCircle2, MessageSquare, Plus, AlertCircle, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { clsx } from 'clsx';
 
 const PublicQuote = () => {
   const { slug } = useParams();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [addons, setAddons] = useState<QuoteAddon[]>([]);
+  const [trackerRequired, setTrackerRequired] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +35,17 @@ const PublicQuote = () => {
         .eq('quote_id', data.id);
       
       if (addonsData) setAddons(addonsData);
+
+      // Check tracker rule
+      if (data.category_id) {
+        const { data: rule } = await supabase
+          .from('pricing_rules')
+          .select('tracker_required')
+          .eq('category_id', data.category_id)
+          .single();
+        if (rule) setTrackerRequired(rule.tracker_required);
+      }
+
     } catch (error) {
       console.error('Error fetching quote:', error);
     } finally {
@@ -62,175 +75,205 @@ const PublicQuote = () => {
   }
 
   const handleWhatsApp = () => {
-    const message = `Olá, recebi minha cotação da Auto Excelência e quero seguir com a associação.\n\nVeículo: ${quote.brand} ${quote.model}\nPlaca: ${quote.plate || 'Não informada'}\nMensalidade: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\nLink da cotação: ${window.location.href}`;
+    const message = `Olá! Quero seguir com a minha associação da Auto Excelência.
+
+*🚗 DADOS DA COTAÇÃO*
+Modelo: ${quote.brand} ${quote.model}
+Placa: ${quote.plate || '---'}
+Código FIPE: ${quote.fipe_code || '---'}
+Valor FIPE: R$ ${Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Valor Mensal: R$ ${Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Participação Evento: R$ ${Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Adesão/Vistoria: R$ ${Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}
+
+*🎯 TOTAL DA MENSALIDADE: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
+
+${trackerRequired ? '✔️ Rastreador incluso\n' : ''}✔️ Proteção Completa
+✔️ Assistência 24h
+
+Link oficial: ${window.location.href}`;
+
     window.open(`https://wa.me/55${quote.client_whatsapp?.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const getVidrosPercentage = () => {
+    return quote.category_name.toUpperCase().includes('IMPORTAD') || quote.category_name.toUpperCase().includes('ESPECIAL') ? '50' : '100';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-[#f8fafc] pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 py-6">
-        <div className="max-w-3xl mx-auto px-6 flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 py-6 sticky top-0 z-50">
+        <div className="max-w-xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <ShieldCheck className="text-white" size={24} />
             </div>
             <div>
               <h1 className="font-black text-xl tracking-tight uppercase italic">Auto <span className="text-primary">Excelência</span></h1>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none">Proteção Veicular</p>
             </div>
           </div>
-          <div className="hidden sm:block text-right">
-            <p className="text-xs text-gray-400 font-medium">Data da cotação</p>
-            <p className="font-bold text-secondary">{format(new Date(quote.created_at), "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
-          </div>
+          <button onClick={handleWhatsApp} className="btn-primary text-xs py-2 px-4 flex items-center gap-2">
+            <MessageSquare size={14} /> Falar com Consultor
+          </button>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-10 space-y-8">
-        {/* Main Card */}
-        <section className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
-          <div className="p-8 sm:p-12 text-center bg-secondary text-white relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Mensalidade Total</p>
-              <h2 className="text-6xl font-black mb-4">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
-              <div className="inline-flex items-center gap-2 bg-primary/20 text-primary-light px-4 py-2 rounded-full text-sm font-bold border border-primary/30">
-                <CheckCircle2 size={16} />
-                Proteção Ativa 24h
-              </div>
-            </div>
-            {/* Abstract Background Decor */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary rounded-full blur-[80px] opacity-20"></div>
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500 rounded-full blur-[80px] opacity-10"></div>
+      <main className="max-w-xl mx-auto px-4 py-8 space-y-6">
+        
+        {/* 🚗 Dados da cotação */}
+        <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
+            <div className="bg-blue-100 text-blue-600 p-2 rounded-lg"><Car size={20} /></div>
+            <h2 className="text-lg font-bold text-gray-800">Dados da Cotação</h2>
           </div>
-
-          <div className="p-8 sm:p-12 space-y-10">
-            {/* Vehicle Data */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest border-b border-gray-100 pb-2">Informações do Veículo</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
-                      <Car size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Marca / Modelo</p>
-                      <p className="font-bold text-secondary text-lg">{quote.brand} {quote.model}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Placa / Ano</p>
-                      <p className="font-bold text-secondary text-lg">{quote.plate || '---'} • {quote.year}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest border-b border-gray-100 pb-2">Valores de Referência</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
-                      <Calendar size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Valor FIPE</p>
-                      <p className="font-bold text-secondary text-lg">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-primary">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Participação Evento</p>
-                      <p className="font-bold text-primary text-lg">R$ {Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm">
+              <div><span className="text-gray-500 block text-xs">Modelo</span><strong className="text-gray-800">{quote.brand} {quote.model}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{quote.plate || '---'}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Código FIPE</span><strong className="text-gray-800">{quote.fipe_code || '---'}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Participação de evento</span><strong className="text-gray-800">R$ {Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
             </div>
 
-            {/* Addons List */}
-            {addons.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest border-b border-gray-100 pb-2">Serviços Adicionais Inclusos</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {addons.map((addon) => (
-                    <div key={addon.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                      <span className="font-semibold text-gray-700">{addon.name}</span>
-                      <span className="text-gray-400 font-bold">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  ))}
-                </div>
+            <div className="mt-6 bg-secondary text-white rounded-2xl p-6 text-center shadow-xl shadow-secondary/20 relative overflow-hidden">
+              <div className="relative z-10">
+                <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">Total da mensalidade</p>
+                <h3 className="text-5xl font-black text-white">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
               </div>
-            )}
-
-            {/* Final Summary Table */}
-            <div className="bg-gray-50 rounded-3xl p-6 sm:p-8 space-y-4">
-              <div className="flex justify-between items-center text-sm font-medium">
-                <span className="text-gray-500">Valor Base Mensal</span>
-                <span className="text-secondary font-bold">R$ {Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-medium">
-                <span className="text-gray-500">Adicionais Contratados</span>
-                <span className="text-secondary font-bold">R$ {Number(quote.addons_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-medium pt-4 border-t border-gray-200">
-                <span className="text-gray-800 font-black uppercase tracking-tight">Investimento Mensal</span>
-                <span className="text-primary text-2xl font-black">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-bold text-gray-400 pt-2">
-                <span>Taxa de Adesão/Vistoria (Única)</span>
-                <span>R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary rounded-full blur-[60px] opacity-40"></div>
             </div>
-          </div>
-
-          {/* Action Footer */}
-          <div className="p-8 sm:p-12 bg-white border-t border-gray-100">
-            <button 
-              onClick={() => handleWhatsApp()}
-              className="btn-primary w-full py-5 text-lg flex items-center justify-center gap-3 shadow-2xl shadow-primary/30"
-            >
-              <MessageSquare size={24} />
-              Quero me associar agora
-            </button>
-            <p className="text-center mt-6 text-gray-400 text-sm font-medium">
-              Fale com seu consultor pelo WhatsApp para ativar sua proteção.
-            </p>
           </div>
         </section>
 
-        {/* Benefits Footer */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-          <div className="p-6">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md mx-auto mb-4 text-primary">
-              <ShieldCheck size={24} />
-            </div>
-            <h4 className="font-bold text-secondary mb-1">Proteção Completa</h4>
-            <p className="text-xs text-gray-500">Roubo, furto, colisão e fenômenos da natureza.</p>
+        {/* 🛡️ Benefícios inclusos */}
+        <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
+            <div className="bg-green-100 text-green-600 p-2 rounded-lg"><ShieldCheck size={20} /></div>
+            <h2 className="text-lg font-bold text-gray-800">Proteção / Cobertura Inclusa</h2>
           </div>
           <div className="p-6">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md mx-auto mb-4 text-primary">
-              <Phone size={24} />
-            </div>
-            <h4 className="font-bold text-secondary mb-1">Assistência 24h</h4>
-            <p className="text-xs text-gray-500">Guincho, socorro mecânico e chaveiro em todo Brasil.</p>
-          </div>
-          <div className="p-6">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-md mx-auto mb-4 text-primary">
-              <CheckCircle2 size={24} />
-            </div>
-            <h4 className="font-bold text-secondary mb-1">Sem Análise</h4>
-            <p className="text-xs text-gray-500">Não consultamos SPC/Serasa e sem perfil de condutor.</p>
+            <ul className="space-y-3 text-sm text-gray-700">
+              {trackerRequired && (
+                <li className="flex items-start gap-3 text-primary font-bold bg-red-50 p-3 rounded-xl border border-red-100">
+                  <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-primary" />
+                  Rastreador incluso
+                </li>
+              )}
+              {[
+                'Sem perfil de motorista, desde que a CNH esteja regularizada',
+                'Cobertura nacional',
+                'Furto',
+                'Roubo',
+                'Incêndio proveniente de colisão',
+                'Granizo',
+                'Colisão',
+                'Indenização até 100% da FIPE em roubo ou perda total',
+                'Cobertura para terceiros até R$ 200.000,00',
+                `${getVidrosPercentage()}% de proteção para retrovisor, para-brisa e faróis`,
+                'Proteção para carros rebaixados',
+                'Livre para eventos'
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-green-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
+
+        {/* 🚨 Assistência / Guincho */}
+        <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
+            <div className="bg-orange-100 text-orange-600 p-2 rounded-lg"><AlertCircle size={20} /></div>
+            <h2 className="text-lg font-bold text-gray-800">Assistência / Guincho (24h)</h2>
+          </div>
+          <div className="p-6">
+            <ul className="space-y-3 text-sm text-gray-700">
+              {[
+                'Até 500 km ida e volta para panes, com utilização a cada 30 dias',
+                'Falta de combustível',
+                'Pneu furado',
+                'Pane elétrica',
+                'Pane mecânica',
+                'Carga de bateria',
+                'Chaveiro com reembolso até R$ 100,00 (a cada 30 dias)',
+                'Táxi/Uber com reembolso até R$ 150,00 (somente em eventos)',
+                'Hospedagem com reembolso até R$ 100,00/dia (máx. 2 diárias)',
+                'Auxílio funeral até R$ 5.000,00'
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <Phone size={18} className="shrink-0 mt-0.5 text-orange-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ➕ Benefícios opcionais */}
+        <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
+            <div className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Plus size={20} /></div>
+            <h2 className="text-lg font-bold text-gray-800">Benefícios Opcionais</h2>
+          </div>
+          <div className="p-6">
+            <p className="text-sm text-gray-500 mb-4">Adicione ainda mais proteção ao seu veículo com nossos serviços opcionais:</p>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">Carro assistencial 7 dias</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 9,90</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">Carro assistencial 15 dias</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 15,90</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">Cobertura para alagamento</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 15,90</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">1000 km de guincho</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 19,90</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">Cobertura Terceiros R$ 300 mil</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 19,90</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">Indenização 100% FIPE (Leilão/Sinistro)</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 39,90</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <span className="text-sm text-gray-700 font-medium">Cobertura 100% para vidros</span>
+                <span className="text-sm font-bold text-secondary">+ R$ 19,90</span>
+              </div>
+              {!trackerRequired && (
+                <div className="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
+                  <span className="text-sm text-primary font-bold">Rastreador</span>
+                  <span className="text-sm font-black text-primary">+ R$ 50,00</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <div className="pt-4">
+          <button 
+            onClick={handleWhatsApp}
+            className="btn-primary w-full py-5 text-lg flex items-center justify-center gap-3 shadow-2xl shadow-primary/30"
+          >
+            <MessageSquare size={24} />
+            Quero me associar agora
+          </button>
+        </div>
+
       </main>
     </div>
   );

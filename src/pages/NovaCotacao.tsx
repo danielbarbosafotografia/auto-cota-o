@@ -246,7 +246,18 @@ const NovaCotacao = () => {
   const handleWhatsApp = (slug?: string) => {
     if (!result) return;
     const finalSlug = slug || 'TODO';
-    const message = `Olá, recebi minha cotação da Auto Excelência e quero seguir com a associação.\n\nVeículo: ${vehicle.brand} ${vehicle.model}\nMensalidade: R$ ${result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\nLink da cotação: ${window.location.origin}/p/${finalSlug}`;
+    const message = `Olá! A cotação da sua proteção veicular Auto Excelência está pronta!
+
+*🚗 DADOS DA COTAÇÃO*
+Modelo: ${vehicle.brand} ${vehicle.model}
+Placa: ${vehicle.plate || '---'}
+Código FIPE: ${vehicle.fipeCode || '---'}
+Valor FIPE: R$ ${Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+
+*🎯 TOTAL DA MENSALIDADE: R$ ${result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
+
+Acesse o link abaixo para ver todos os benefícios e assistências 24h inclusas:
+${window.location.origin}/p/${finalSlug}`;
     window.open(`https://wa.me/55${client.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
