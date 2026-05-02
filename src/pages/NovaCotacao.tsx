@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { calculateQuote } from '../lib/calculator';
 import type { CalculationResult } from '../lib/calculator';
+import { fetchBrands, fetchModels, fetchYears, fetchFipeValue, type VehicleType, type FipeBrand, type FipeModel, type FipeYear } from '../lib/fipeApi';
+import { inferCategory } from '../lib/categoryMapper';
 import { 
   User, 
   Car, 
@@ -45,6 +47,17 @@ const NovaCotacao = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [result, setResult] = useState<CalculationResult | null>(null);
 
+  // FIPE State
+  const [fipeType, setFipeType] = useState<VehicleType>('carros');
+  const [fipeBrands, setFipeBrands] = useState<FipeBrand[]>([]);
+  const [fipeModels, setFipeModels] = useState<FipeModel[]>([]);
+  const [fipeYears, setFipeYears] = useState<FipeYear[]>([]);
+  
+  const [selectedBrandCode, setSelectedBrandCode] = useState('');
+  const [selectedModelCode, setSelectedModelCode] = useState('');
+  const [selectedYearCode, setSelectedYearCode] = useState('');
+  const [fipeLoading, setFipeLoading] = useState(false);
+
   const [modelStatus, setModelStatus] = useState<'active' | 'consult' | 'restricted' | null>(null);
 
   useEffect(() => {
@@ -84,6 +97,62 @@ const NovaCotacao = () => {
     if (ruleRes.data) setRules(ruleRes.data);
     if (addonRes.data) setAddons(addonRes.data);
   };
+
+  // Load Brands when type changes
+  useEffect(() => {
+    fetchBrands(fipeType).then(setFipeBrands).catch(console.error);
+    setSelectedBrandCode('');
+    setFipeModels([]);
+    setSelectedModelCode('');
+    setFipeYears([]);
+    setSelectedYearCode('');
+  }, [fipeType]);
+
+  // Load Models when brand changes
+  useEffect(() => {
+    if (!selectedBrandCode) return;
+    fetchModels(fipeType, selectedBrandCode).then(setFipeModels).catch(console.error);
+    setSelectedModelCode('');
+    setFipeYears([]);
+    setSelectedYearCode('');
+  }, [selectedBrandCode, fipeType]);
+
+  // Load Years when model changes
+  useEffect(() => {
+    if (!selectedModelCode) return;
+    fetchYears(fipeType, selectedBrandCode, selectedModelCode).then(setFipeYears).catch(console.error);
+    setSelectedYearCode('');
+  }, [selectedModelCode, selectedBrandCode, fipeType]);
+
+  // Load FIPE value when year changes
+  useEffect(() => {
+    if (!selectedYearCode) return;
+    setFipeLoading(true);
+    fetchFipeValue(fipeType, selectedBrandCode, selectedModelCode, selectedYearCode)
+      .then((data) => {
+        // Parse FIPE Value "R$ 15.000,00" to 15000
+        const numericValue = data.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        
+        // Auto categorize
+        const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType);
+        setModelStatus(status);
+
+        // Find the category ID from the loaded categories
+        const matchedCategory = categories.find(c => c.name.toUpperCase() === categoryName);
+
+        setVehicle({
+          plate: vehicle.plate,
+          brand: data.Marca,
+          model: data.Modelo,
+          year: data.AnoModelo.toString(),
+          fipeCode: data.CodigoFipe,
+          fipeValue: numericValue,
+          category: matchedCategory ? matchedCategory.id : ''
+        });
+      })
+      .catch(console.error)
+      .finally(() => setFipeLoading(false));
+  }, [selectedYearCode, fipeType, selectedBrandCode, selectedModelCode, categories]);
 
   const handleNextStep = () => {
     if (step === 2) {
@@ -244,33 +313,49 @@ const NovaCotacao = () => {
               <Car size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Dados do Veículo</h2>
-              <p className="text-sm text-gray-500">Insira as informações técnicas para o cálculo.</p>
+              <h2 className="text-xl font-bold">Dados do Veículo (Tabela FIPE)</h2>
+              <p className="text-sm text-gray-500">Selecione o veículo para preenchimento automático.</p>
             </div>
           </div>
 
           <div className="card space-y-4">
+            <div className="flex gap-4 mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="fipeType" value="carros" checked={fipeType === 'carros'} onChange={() => setFipeType('carros')} /> Carro
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="fipeType" value="motos" checked={fipeType === 'motos'} onChange={() => setFipeType('motos')} /> Moto
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="fipeType" value="caminhoes" checked={fipeType === 'caminhoes'} onChange={() => setFipeType('caminhoes')} /> Caminhão
+              </label>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Placa (Opcional)</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  placeholder="AAA-0000"
-                  value={vehicle.plate}
-                  onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})}
-                />
-              </div>
-              <div>
-                <label className="label">Categoria</label>
+                <label className="label">Marca</label>
                 <select 
                   className="input-field"
-                  value={vehicle.category}
-                  onChange={e => setVehicle({...vehicle, category: e.target.value})}
+                  value={selectedBrandCode}
+                  onChange={e => setSelectedBrandCode(e.target.value)}
                 >
                   <option value="">Selecione...</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                  {fipeBrands.map(b => (
+                    <option key={b.codigo} value={b.codigo}>{b.nome}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Modelo</label>
+                <select 
+                  className="input-field"
+                  value={selectedModelCode}
+                  onChange={e => setSelectedModelCode(e.target.value)}
+                  disabled={!selectedBrandCode}
+                >
+                  <option value="">Selecione...</option>
+                  {fipeModels.map(m => (
+                    <option key={m.codigo} value={m.codigo}>{m.nome}</option>
                   ))}
                 </select>
               </div>
@@ -278,59 +363,78 @@ const NovaCotacao = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Marca</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  placeholder="Ex: Honda"
-                  value={vehicle.brand}
-                  onChange={e => setVehicle({...vehicle, brand: e.target.value})}
-                />
+                <label className="label">Ano</label>
+                <select 
+                  className="input-field"
+                  value={selectedYearCode}
+                  onChange={e => setSelectedYearCode(e.target.value)}
+                  disabled={!selectedModelCode}
+                >
+                  <option value="">Selecione...</option>
+                  {fipeYears.map(y => (
+                    <option key={y.codigo} value={y.codigo}>{y.nome}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="label">Modelo</label>
+                <label className="label">Placa (Opcional)</label>
                 <input 
                   type="text" 
-                  className={clsx(
-                    "input-field",
-                    modelStatus === 'restricted' && "border-red-500",
-                    modelStatus === 'consult' && "border-orange-500"
-                  )} 
-                  placeholder="Ex: Civic"
-                  value={vehicle.model}
-                  onChange={e => setVehicle({...vehicle, model: e.target.value})}
+                  className="input-field uppercase" 
+                  placeholder="AAA-0000"
+                  value={vehicle.plate}
+                  onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})}
                 />
-                {modelStatus === 'restricted' && (
-                  <p className="text-xs text-red-500 mt-1 font-bold">Este veículo não é atendido no momento.</p>
-                )}
-                {modelStatus === 'consult' && (
-                  <p className="text-xs text-orange-500 mt-1 font-bold">Este veículo precisa de análise. Consulte o administrador.</p>
-                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Ano</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  placeholder="Ex: 2022"
-                  value={vehicle.year}
-                  onChange={e => setVehicle({...vehicle, year: e.target.value})}
-                />
+            {fipeLoading && (
+              <div className="flex items-center gap-2 text-primary text-sm font-semibold justify-center py-4">
+                <Loader2 className="animate-spin" size={16} /> Consultando FIPE...
               </div>
-              <div>
-                <label className="label">Valor FIPE (R$)</label>
-                <input 
-                  type="number" 
-                  className="input-field" 
-                  placeholder="0,00"
-                  value={vehicle.fipeValue}
-                  onChange={e => setVehicle({...vehicle, fipeValue: e.target.value})}
-                />
+            )}
+
+            {vehicle.fipeValue && !fipeLoading && (
+              <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded uppercase tracking-wider">
+                    ✓ FIPE Validada
+                  </span>
+                  <span className="text-xs text-gray-500">Cód: {vehicle.fipeCode}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Valor FIPE</p>
+                    <p className="font-bold text-lg text-secondary">
+                      R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Categoria Automática</p>
+                    <p className="font-bold text-primary">
+                      {categories.find(c => c.id === vehicle.category)?.name || 'Desconhecida'}
+                    </p>
+                  </div>
+                </div>
+
+                {modelStatus === 'restricted' && (
+                  <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                    ⚠️ Este veículo NÃO É ACEITO pela Auto Excelência.
+                  </div>
+                )}
+                {modelStatus === 'consult' && (
+                  <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                    ⚠️ Este veículo requer CONSULTA PRÉVIA. Venda sujeita a análise.
+                  </div>
+                )}
+                {!vehicle.category && modelStatus !== 'restricted' && (
+                  <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-sm">
+                    Não foi possível identificar a categoria automaticamente. Por favor, verifique com o administrador.
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

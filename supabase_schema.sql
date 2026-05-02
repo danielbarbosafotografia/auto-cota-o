@@ -1,6 +1,20 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Limpar banco antes de recriar para evitar erros de duplicidade
+DROP TABLE IF EXISTS quote_addons CASCADE;
+DROP TABLE IF EXISTS quotes CASCADE;
+DROP TABLE IF EXISTS addons CASCADE;
+DROP TABLE IF EXISTS pricing_rules CASCADE;
+DROP TABLE IF EXISTS vehicle_models CASCADE;
+DROP TABLE IF EXISTS vehicle_brands CASCADE;
+DROP TABLE IF EXISTS vehicle_categories CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS vehicle_status CASCADE;
+
+
 -- PROFILES
 CREATE TYPE user_role AS ENUM ('admin', 'seller');
 
@@ -125,19 +139,30 @@ ALTER TABLE addons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quote_addons ENABLE ROW LEVEL SECURITY;
 
+-- FUNCTION TO CHECK ADMIN (Prevents infinite recursion on profiles table)
+CREATE OR REPLACE FUNCTION is_admin() RETURNS boolean
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
 -- Profiles: Users can read their own, Admin can read all
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Admin can view all profiles" ON profiles FOR SELECT USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Admin can view all profiles" ON profiles FOR SELECT USING (is_admin());
 
 -- Clients: Sellers see their own, Admin sees all
 CREATE POLICY "Sellers view own clients" ON clients FOR SELECT USING (seller_id = auth.uid());
 CREATE POLICY "Sellers manage own clients" ON clients FOR INSERT WITH CHECK (seller_id = auth.uid());
-CREATE POLICY "Admin manage all clients" ON clients FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Admin manage all clients" ON clients FOR ALL USING (is_admin());
 
 -- Quotes: Sellers see their own, Admin sees all, Public can see via slug (for proposal page)
 CREATE POLICY "Sellers view own quotes" ON quotes FOR SELECT USING (seller_id = auth.uid());
 CREATE POLICY "Sellers manage own quotes" ON quotes FOR INSERT WITH CHECK (seller_id = auth.uid());
-CREATE POLICY "Admin manage all quotes" ON quotes FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Admin manage all quotes" ON quotes FOR ALL USING (is_admin());
 CREATE POLICY "Public view quotes via slug" ON quotes FOR SELECT USING (TRUE);
 
 -- Metadata (Brands, Models, Categories, Rules, Addons): Publicly readable, Admin manageable
@@ -147,11 +172,11 @@ CREATE POLICY "Public read metadata" ON vehicle_categories FOR SELECT USING (TRU
 CREATE POLICY "Public read metadata" ON pricing_rules FOR SELECT USING (TRUE);
 CREATE POLICY "Public read metadata" ON addons FOR SELECT USING (TRUE);
 
-CREATE POLICY "Admin manage metadata" ON vehicle_brands FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY "Admin manage metadata" ON vehicle_models FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY "Admin manage metadata" ON vehicle_categories FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY "Admin manage metadata" ON pricing_rules FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-CREATE POLICY "Admin manage metadata" ON addons FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Admin manage metadata" ON vehicle_brands FOR ALL USING (is_admin());
+CREATE POLICY "Admin manage metadata" ON vehicle_models FOR ALL USING (is_admin());
+CREATE POLICY "Admin manage metadata" ON vehicle_categories FOR ALL USING (is_admin());
+CREATE POLICY "Admin manage metadata" ON pricing_rules FOR ALL USING (is_admin());
+CREATE POLICY "Admin manage metadata" ON addons FOR ALL USING (is_admin());
 
 -- SEED DATA
 
@@ -172,7 +197,7 @@ INSERT INTO pricing_rules (category_id, fipe_limit, fixed_price, percentage_abov
 SELECT id, 10000, 69.00, 0.0070, 10000, 900.00, 0.09, false FROM vehicle_categories WHERE name = 'MOTO';
 
 INSERT INTO pricing_rules (category_id, fipe_limit, fixed_price, percentage_above_limit, participation_limit, participation_fixed, participation_percentage_above_limit, tracker_required)
-SELECT id, 30000, 69.00, 0.0023, 30000, 2100.00, 0.07, false FROM vehicle_categories WHERE name = 'NACIONAL';
+SELECT id, 30000, 69.00, 0.0025, 30000, 2100.00, 0.07, false FROM vehicle_categories WHERE name = 'NACIONAL';
 
 INSERT INTO pricing_rules (category_id, fipe_limit, fixed_price, percentage_above_limit, participation_limit, participation_fixed, participation_percentage_above_limit, tracker_required)
 SELECT id, 30000, 105.00, 0.0035, 30000, 2400.00, 0.08, false FROM vehicle_categories WHERE name = 'IMPORTADO';
