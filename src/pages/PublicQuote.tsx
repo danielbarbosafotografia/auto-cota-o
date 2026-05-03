@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Quote, QuoteAddon } from '../types';
-import { ShieldCheck, Car, CheckCircle2, MessageSquare, Plus, AlertCircle, Phone } from 'lucide-react';
+import { ShieldCheck, Car, CheckCircle2, MessageSquare, Plus, Wrench, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PublicQuote = () => {
   const { slug } = useParams();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [addons, setAddons] = useState<QuoteAddon[]>([]);
+  const [allAddons, setAllAddons] = useState<any[]>([]);
   const [trackerRequired, setTrackerRequired] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -31,8 +32,15 @@ const PublicQuote = () => {
         .from('quote_addons')
         .select('*')
         .eq('quote_id', data.id);
-      
       if (addonsData) setAddons(addonsData);
+
+      const { data: allAddonsData } = await supabase
+        .from('addons')
+        .select('*')
+        .eq('active', true)
+        .order('name');
+        
+      if (allAddonsData) setAllAddons(allAddonsData);
 
       // Check tracker rule
       if (data.category_id) {
@@ -105,7 +113,7 @@ Link oficial: ${window.location.href}`;
       <header className="bg-white border-b border-gray-200 py-6 sticky top-0 z-50">
         <div className="max-w-xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Auto Excelência" className="h-10 w-auto object-contain" />
+            <img src="/logo.png" alt="Auto Excelência" className="h-10 sm:h-12 w-auto max-w-[160px] sm:max-w-[200px] object-contain" />
           </div>
           <button onClick={handleWhatsApp} className="btn-primary text-xs py-2 px-4 flex items-center gap-2">
             <MessageSquare size={14} /> Falar com Consultor
@@ -191,7 +199,7 @@ Link oficial: ${window.location.href}`;
         {/* 🚨 Assistência / Guincho */}
         <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
-            <div className="bg-orange-100 text-orange-600 p-2 rounded-lg"><AlertCircle size={20} /></div>
+            <div className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Wrench size={20} /></div>
             <h2 className="text-lg font-bold text-gray-800">Assistência / Guincho (24h)</h2>
           </div>
           <div className="p-6">
@@ -217,67 +225,44 @@ Link oficial: ${window.location.href}`;
           </div>
         </section>
 
-        {/* ✅ Opcionais Contratados */}
-        {addons.length > 0 && (
-          <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
-              <div className="bg-green-100 text-green-600 p-2 rounded-lg"><CheckCircle2 size={20} /></div>
-              <h2 className="text-lg font-bold text-gray-800">Opcionais Inclusos na Cotação</h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-3">
-                {addons.map(addon => (
-                  <div key={addon.id} className="flex justify-between items-center p-3 bg-green-50/50 rounded-xl border border-green-100">
-                    <span className="text-sm text-gray-700 font-medium">{addon.name}</span>
-                    <span className="text-sm font-bold text-green-700">Incluso</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ➕ Benefícios opcionais (Upsell) */}
+        {/* ➕ Benefícios opcionais */}
         <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
             <div className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Plus size={20} /></div>
             <h2 className="text-lg font-bold text-gray-800">Benefícios Opcionais</h2>
           </div>
           <div className="p-6">
-            <p className="text-sm text-gray-500 mb-4">Adicione ainda mais proteção ao seu veículo com nossos serviços opcionais:</p>
+            <p className="text-sm text-gray-500 mb-4">Veja os opcionais que você adquiriu e os demais disponíveis:</p>
             <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">Carro assistencial 7 dias</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 9,90</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">Carro assistencial 15 dias</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 15,90</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">Cobertura para alagamento</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 15,90</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">1000 km de guincho</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 19,90</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">Cobertura Terceiros R$ 300 mil</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 19,90</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">Indenização 100% FIPE (Leilão/Sinistro)</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 39,90</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-sm text-gray-700 font-medium">Cobertura 100% para vidros</span>
-                <span className="text-sm font-bold text-secondary">+ R$ 19,90</span>
-              </div>
+              {allAddons.length > 0 ? (
+                allAddons.map(addon => {
+                  const isContracted = addons.some(a => a.addon_id === addon.id);
+                  return (
+                    <div 
+                      key={addon.id} 
+                      className={`flex justify-between items-center p-3 rounded-xl border ${
+                        isContracted 
+                          ? 'bg-green-50/50 border-green-200' 
+                          : 'bg-gray-50 border-gray-100 opacity-70 grayscale'
+                      }`}
+                    >
+                      <span className={`text-sm font-medium ${isContracted ? 'text-green-800 font-bold' : 'text-gray-500'}`}>
+                        {addon.name}
+                      </span>
+                      <span className={`text-sm font-bold ${isContracted ? 'text-green-600' : 'text-gray-400'}`}>
+                        {isContracted ? '✓ Incluso' : `+ R$ ${Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center p-4 text-gray-400 text-sm">Nenhum adicional cadastrado.</div>
+              )}
+
               {!trackerRequired && (
-                <div className="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
-                  <span className="text-sm text-primary font-bold">Rastreador</span>
-                  <span className="text-sm font-black text-primary">+ R$ 50,00</span>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 opacity-70 grayscale">
+                  <span className="text-sm text-gray-500 font-medium">Rastreador Opcional</span>
+                  <span className="text-sm font-bold text-gray-400">+ R$ 50,00</span>
                 </div>
               )}
             </div>

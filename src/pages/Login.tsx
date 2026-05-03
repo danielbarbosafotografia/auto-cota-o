@@ -52,7 +52,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
-          <img src="/logo.png" alt="Auto Excelência" className="h-20 w-auto object-contain mx-auto mb-6" />
+          <img src="/logo.png" alt="Auto Excelência" className="w-56 max-w-full h-auto object-contain mx-auto mb-6" />
         </div>
 
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
