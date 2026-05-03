@@ -20,7 +20,7 @@ export const Sidebar = () => {
 
   const sellerLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/nova-cotacao', icon: PlusCircle, label: 'Nova Cotação' },
+    { to: '/dashboard', icon: PlusCircle, label: 'Nova Cotação' },
     { to: '/historico', icon: History, label: 'Histórico' },
     { to: '/clientes', icon: Users, label: 'Clientes' },
     { to: '/perfil', icon: User, label: 'Perfil' },
@@ -77,7 +77,7 @@ export const BottomNav = () => {
 
   const links = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { to: '/nova-cotacao', icon: PlusCircle, label: 'Cotar' },
+    { to: '/dashboard', icon: PlusCircle, label: 'Cotar' },
     { to: '/historico', icon: History, label: 'Histórico' },
     { to: '/perfil', icon: User, label: 'Perfil' },
   ];

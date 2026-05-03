@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +27,7 @@ import { clsx } from 'clsx';
 
 const NovaCotacao = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
@@ -64,6 +66,11 @@ const NovaCotacao = () => {
   const [modelStatus, setModelStatus] = useState<'active' | 'consult' | 'restricted' | null>(null);
 
   useEffect(() => {
+    const savedName = localStorage.getItem('consultor_nome');
+    if (!savedName) {
+      navigate('/dashboard');
+      return;
+    }
     fetchMetadata();
   }, []);
 
@@ -587,7 +594,14 @@ const NovaCotacao = () => {
                 <Send size={18} />
                 Enviar no WhatsApp
               </button>
-              <button onClick={() => { setStep(1); setSavedSlug(null); setClient({name:'', whatsapp:''}); setVehicle({...vehicle, plate:''}); }} className="btn-secondary flex items-center justify-center gap-2 py-3">
+              <button 
+                onClick={() => { 
+                  localStorage.removeItem('consultor_nome');
+                  localStorage.removeItem('consultor_cidade');
+                  navigate('/dashboard'); 
+                }} 
+                className="btn-secondary flex items-center justify-center gap-2 py-3"
+              >
                 <ArrowLeft size={18} />
                 Voltar (Nova Cotação)
               </button>
