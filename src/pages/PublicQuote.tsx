@@ -250,7 +250,8 @@ Link oficial: ${window.location.href}`;
                         {addon.name}
                       </span>
                       <span className={`text-sm font-bold ${isContracted ? 'text-green-600' : 'text-gray-400'}`}>
-                        {isContracted ? '✓ Incluso' : `+ R$ ${Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                        {isContracted && '✓ '}
+                        + R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   );
