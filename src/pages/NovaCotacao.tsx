@@ -8,20 +8,19 @@ import type { CalculationResult } from '../lib/calculator';
 import { fetchBrands, fetchModels, fetchYears, fetchFipeValue, type VehicleType, type FipeBrand, type FipeModel, type FipeYear } from '../lib/fipeApi';
 import { inferCategory } from '../lib/categoryMapper';
 import { 
+  User, 
+  Car, 
+  Plus, 
+  CheckCircle2, 
+  ChevronRight, 
   ChevronLeft,
   Check,
   Send,
+  Printer,
   Save,
   Loader2,
   Copy,
-  ArrowLeft,
-  Printer,
-  ShieldCheck,
-  Car,
-  CheckCircle2,
-  MapPin,
-  Zap,
-  Plus
+  ArrowLeft
 } from 'lucide-react';
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
@@ -141,9 +140,14 @@ const NovaCotacao = () => {
     setFipeLoading(true);
     fetchFipeValue(fipeType, selectedBrandCode, selectedModelCode, selectedYearCode)
       .then((data) => {
+        // Parse FIPE Value "R$ 15.000,00" to 15000
         const numericValue = data.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        
+        // Auto categorize
         const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType);
         setModelStatus(status);
+
+        // Find the category ID from the loaded categories
         const matchedCategory = categories.find(c => c.name.toUpperCase() === categoryName);
 
         setVehicle({
@@ -231,6 +235,7 @@ const NovaCotacao = () => {
 
       if (error) throw error;
 
+      // Save quote addons
       if (selectedAddons.length > 0) {
         const quoteAddons = selectedAddons.map(a => ({
           quote_id: quote.id,
@@ -251,16 +256,8 @@ const NovaCotacao = () => {
   };
 
   const handleWhatsApp = (slug?: string) => {
-    if (!result) return;
-    const finalSlug = slug || savedSlug;
-    const message = `Olá! Aqui está a sua cotação da Auto Excelência.
-
-*🚗 VEÍCULO:* ${vehicle.brand} ${vehicle.model}
-*💰 MENSALIDADE:* R$ ${result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-
-Confira todos os benefícios e detalhes no link abaixo:
-${window.location.origin}/p/${finalSlug}`;
-
+    const finalSlug = slug || savedSlug || 'TODO';
+    const message = `Olá, segue sua cotação da Auto Excelência:\n${window.location.origin}/p/${finalSlug}`;
     window.open(`https://wa.me/55${client.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -272,319 +269,379 @@ ${window.location.origin}/p/${finalSlug}`;
   };
 
   const handlePrint = () => {
-    if (savedSlug) {
-      window.open(`/p/${savedSlug}`, '_blank');
-    }
+    window.open(`/p/${savedSlug}`, '_blank');
   };
 
   return (
-    <div className="max-w-3xl mx-auto pb-10 font-sans text-gray-900 antialiased">
-      <div className="flex items-center justify-between py-6 mb-8 border-b border-gray-100 px-4">
-        <div>
-          <h1 className="text-xl font-black uppercase tracking-tight">Nova Cotação</h1>
-          <p className="text-xs text-gray-400 mt-0.5">{localStorage.getItem('consultor_nome')} • {localStorage.getItem('consultor_cidade')}/SC</p>
-        </div>
-        <img src="/logo.png" alt="Auto Excelência" className="h-6 w-auto grayscale brightness-0 opacity-20" />
+    <div className="max-w-2xl mx-auto pb-10">
+      <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6 flex flex-col items-center text-center">
+        <p className="text-sm font-medium text-gray-700">Bem-vindo ao sistema oficial da Auto Excelência.</p>
+        <p className="text-sm text-gray-600 mt-1">Você está acessando como <strong className="text-primary">{localStorage.getItem('consultor_nome') || 'Consultor'}</strong> — <strong className="text-primary">{localStorage.getItem('consultor_cidade') || 'Cidade'}/SC</strong>.</p>
+        <p className="text-sm text-gray-600 mt-1">Comece gerando uma nova cotação.</p>
       </div>
 
-      {/* Stepper Minimalista */}
-      <div className="flex items-center gap-2 mb-12 px-4">
+      {/* Stepper Header */}
+      <div className="flex items-center justify-between mb-8 px-2">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className={clsx(
-            "h-1 rounded-full transition-all duration-500",
-            step === i ? "flex-[3] bg-primary" : step > i ? "flex-1 bg-green-500" : "flex-1 bg-gray-100"
-          )} />
+          <div key={i} className="flex items-center">
+            <div className={clsx(
+              "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors",
+              step === i ? "bg-primary text-white" : step > i ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
+            )}>
+              {step > i ? <Check size={20} /> : i}
+            </div>
+            {i < 4 && <div className={clsx("w-8 h-1 mx-2 rounded", step > i ? "bg-green-500" : "bg-gray-200")} />}
+          </div>
         ))}
       </div>
 
       {step === 1 && (
-        <div className="space-y-8 animate-in fade-in duration-300 px-4">
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Nome do cliente</label>
-              <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-1 focus:ring-gray-200 transition-all text-sm font-medium" placeholder="Nome completo" value={client.name} onChange={e => setClient({...client, name: e.target.value})} />
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
+              <User size={24} />
             </div>
             <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">WhatsApp</label>
-              <input type="tel" className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-1 focus:ring-gray-200 transition-all text-sm font-medium" placeholder="(00) 00000-0000" value={client.whatsapp} onChange={e => setClient({...client, whatsapp: e.target.value})} />
+              <h2 className="text-xl font-bold">Dados do Cliente</h2>
+              <p className="text-sm text-gray-500">Identifique para quem é esta cotação.</p>
+            </div>
+          </div>
+          
+          <div className="card">
+            <div className="space-y-4">
+              <div>
+                <label className="label">Nome completo</label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  placeholder="Nome do cliente"
+                  value={client.name}
+                  onChange={e => setClient({...client, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="label">WhatsApp</label>
+                <input 
+                  type="tel" 
+                  className="input-field" 
+                  placeholder="(00) 00000-0000"
+                  value={client.whatsapp}
+                  onChange={e => setClient({...client, whatsapp: e.target.value})}
+                />
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {step === 2 && (
-        <div className="space-y-8 animate-in fade-in duration-300 px-4">
-          <div className="flex gap-6">
-            {(['carros', 'motos', 'caminhoes'] as const).map(type => (
-              <label key={type} className="flex items-center gap-2 cursor-pointer text-[10px] font-black uppercase tracking-widest text-gray-400">
-                <input type="radio" name="fipeType" value={type} checked={fipeType === type} onChange={() => setFipeType(type)} className="text-primary focus:ring-0" />
-                <span className={clsx(fipeType === type && "text-primary")}>{type.replace('oes', 'ão')}</span>
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
+              <Car size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Dados do Veículo (Tabela FIPE)</h2>
+              <p className="text-sm text-gray-500">Selecione o veículo para preenchimento automático.</p>
+            </div>
+          </div>
+
+          <div className="card space-y-4">
+            <div className="flex gap-4 mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="fipeType" value="carros" checked={fipeType === 'carros'} onChange={() => setFipeType('carros')} /> Carro
               </label>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Marca</label>
-              <select className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-1 focus:ring-gray-200 text-sm font-medium" value={selectedBrandCode} onChange={e => setSelectedBrandCode(e.target.value)}>
-                <option value="">Selecione...</option>
-                {fipeBrands.map(b => <option key={b.codigo} value={b.codigo}>{b.nome}</option>)}
-              </select>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="fipeType" value="motos" checked={fipeType === 'motos'} onChange={() => setFipeType('motos')} /> Moto
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="fipeType" value="caminhoes" checked={fipeType === 'caminhoes'} onChange={() => setFipeType('caminhoes')} /> Caminhão
+              </label>
             </div>
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Modelo</label>
-              <select className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-1 focus:ring-gray-200 text-sm font-medium" value={selectedModelCode} onChange={e => setSelectedModelCode(e.target.value)} disabled={!selectedBrandCode}>
-                <option value="">Selecione...</option>
-                {fipeModels.map(m => <option key={m.codigo} value={m.codigo}>{m.nome}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Ano</label>
-              <select className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-1 focus:ring-gray-200 text-sm font-medium" value={selectedYearCode} onChange={e => setSelectedYearCode(e.target.value)} disabled={!selectedModelCode}>
-                <option value="">Selecione...</option>
-                {fipeYears.map(y => <option key={y.codigo} value={y.codigo}>{y.nome}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Placa</label>
-              <input type="text" className="w-full bg-gray-50 border-none rounded-xl p-4 focus:ring-1 focus:ring-gray-200 text-sm font-medium uppercase" placeholder="AAA-0000" value={vehicle.plate} onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})} />
-            </div>
-          </div>
-
-          {fipeLoading && <div className="flex justify-center text-primary"><Loader2 className="animate-spin" size={20} /></div>}
-
-          {vehicle.fipeValue && !fipeLoading && (
-            <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 flex justify-between items-center">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Valor FIPE</p>
-                <p className="text-xl font-black">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Categoria</p>
-                <p className="text-sm font-bold text-primary uppercase tracking-widest">{categories.find(c => c.id === vehicle.category)?.name || '...'}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="space-y-8 animate-in fade-in duration-300 px-4">
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Obrigatórios</h3>
-            <div className="grid grid-cols-1 gap-2">
-              <div className="p-4 bg-gray-50 rounded-xl flex justify-between items-center">
-                <span className="text-sm font-bold text-gray-600">Taxa Administrativa</span>
-                <span className="text-sm font-black">R$ 13,50</span>
-              </div>
-              {rules.find(r => r.category_id === vehicle.category)?.tracker_required && (
-                <div className="p-4 bg-gray-50 rounded-xl flex justify-between items-center">
-                  <span className="text-sm font-bold text-gray-600">Rastreador Monitorado</span>
-                  <span className="text-sm font-black">R$ 50,00</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Opcionais</h3>
-            <div className="grid grid-cols-1 gap-2">
-              {addons.map((addon) => {
-                const rule = rules.find(r => r.category_id === vehicle.category);
-                const n = addon.name.toLowerCase().trim();
-                if (n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto')) return null;
-                const isTracker = n === 'rastreador';
-                if (isTracker && rule?.tracker_required) return null;
-
-                const isSelected = selectedAddons.find(a => a.id === addon.id);
-                return (
-                  <button key={addon.id} onClick={() => toggleAddon(addon)} className={clsx("p-4 rounded-xl flex items-center justify-between text-left transition-all border", isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-gray-100 hover:border-gray-200")}>
-                    <span className="text-sm font-bold text-gray-700">{addon.name}</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-black text-secondary">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      <div className={clsx("w-5 h-5 rounded-full border-2 flex items-center justify-center", isSelected ? "bg-primary border-primary text-white" : "border-gray-100")}>
-                        {isSelected && <Check size={12} />}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && result && (
-        <div className="space-y-6 animate-in fade-in duration-500 px-4">
-          
-          {/* Card Valor Principal - Foco na Conversão */}
-          <section className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm text-center relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Mensalidade do Plano</p>
-              <h1 className="text-5xl md:text-6xl font-black text-secondary mb-3">
-                <span className="text-2xl font-medium text-gray-400 mr-1.5">R$</span>
-                {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </h1>
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-green-600 bg-green-50 px-4 py-1.5 rounded-full uppercase tracking-widest">
-                <ShieldCheck size={14} /> Proteção completa 24h
-              </div>
-            </div>
-          </section>
-
-          {/* Dados do Veículo */}
-          <section className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/5 text-primary rounded-xl flex items-center justify-center shrink-0">
-                <Car size={24} />
+                <label className="label">Marca</label>
+                <select 
+                  className="input-field"
+                  value={selectedBrandCode}
+                  onChange={e => setSelectedBrandCode(e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {fipeBrands.map(b => (
+                    <option key={b.codigo} value={b.codigo}>{b.nome}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-0.5">Veículo Protegido</p>
-                <h2 className="text-lg font-bold text-gray-800 leading-tight">{vehicle.brand} {vehicle.model}</h2>
-                <p className="text-[11px] text-gray-500 mt-0.5">Ano: {vehicle.year} • Placa: {vehicle.plate || '---'}</p>
+                <label className="label">Modelo</label>
+                <select 
+                  className="input-field"
+                  value={selectedModelCode}
+                  onChange={e => setSelectedModelCode(e.target.value)}
+                  disabled={!selectedBrandCode}
+                >
+                  <option value="">Selecione...</option>
+                  {fipeModels.map(m => (
+                    <option key={m.codigo} value={m.codigo}>{m.nome}</option>
+                  ))}
+                </select>
               </div>
             </div>
-            <div className="sm:text-right border-t sm:border-t-0 sm:border-l border-gray-100 pt-4 sm:pt-0 sm:pl-6">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Valor FIPE Referência</p>
-              <p className="text-lg font-bold text-gray-800">R$ {result.fipeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-            </div>
-          </section>
 
-          {/* Benefícios Diagramados */}
-          <section className="space-y-5 pt-2">
-            <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest ml-2">Vantagens do Plano</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Benefícios Inclusos */}
-              <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:border-green-200 transition-colors">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-8 h-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={18} />
-                  </div>
-                  <h4 className="font-black text-gray-800 text-sm uppercase tracking-widest">Cobertura do Veículo</h4>
-                </div>
-                <ul className="space-y-3.5 text-[13px] text-gray-600 font-medium">
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Sem perfil de motorista</li>
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Cobertura em todo território nacional</li>
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Indenização p/ furto, roubo, colisão e granizo</li>
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Indenização 100% da FIPE (roubo/perda total)</li>
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Cobertura p/ terceiros até R$ 200.000,00</li>
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> {result.glassPercentage}% proteção de vidros, retrovisores e faróis</li>
-                  <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Proteção para carros rebaixados</li>
-                </ul>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Ano</label>
+                <select 
+                  className="input-field"
+                  value={selectedYearCode}
+                  onChange={e => setSelectedYearCode(e.target.value)}
+                  disabled={!selectedModelCode}
+                >
+                  <option value="">Selecione...</option>
+                  {fipeYears.map(y => (
+                    <option key={y.codigo} value={y.codigo}>{y.nome}</option>
+                  ))}
+                </select>
               </div>
-
-              <div className="space-y-5">
-                {/* Guincho */}
-                <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:border-green-200 transition-colors">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-8 h-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center shrink-0">
-                      <MapPin size={18} />
-                    </div>
-                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-widest">Guincho 24h</h4>
-                  </div>
-                  <ul className="space-y-3 text-[13px] text-gray-600 font-medium">
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Livre para eventos</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Até 500 km p/ panes (ida e volta)</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Cobertura pane seca, pneu furado e pane elétrica</li>
-                  </ul>
-                </div>
-
-                {/* Assistências Diversas */}
-                <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:border-green-200 transition-colors">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-8 h-8 bg-green-50 text-green-500 rounded-lg flex items-center justify-center shrink-0">
-                      <Zap size={18} />
-                    </div>
-                    <h4 className="font-black text-gray-800 text-sm uppercase tracking-widest">Assistências Inclusas</h4>
-                  </div>
-                  <ul className="space-y-3 text-[13px] text-gray-600 font-medium">
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Carga de bateria no local</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Chaveiro (reembolso até R$ 100,00)</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Táxi/Uber p/ retorno (até R$ 150,00)</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Hospedagem em viagem (até R$ 100,00/dia)</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Auxílio funeral (reembolso até R$ 3.000,00)</li>
-                    <li className="flex gap-3 items-start"><Check size={16} className="text-green-500 shrink-0 mt-0.5" strokeWidth={3} /> Monitoramento Rastreador</li>
-                  </ul>
-                </div>
+              <div>
+                <label className="label">Placa (Opcional)</label>
+                <input 
+                  type="text" 
+                  className="input-field uppercase" 
+                  placeholder="AAA-0000"
+                  value={vehicle.plate}
+                  onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})}
+                />
               </div>
             </div>
-          </section>
 
-          {/* Opcionais Extra se houver */}
-          {selectedAddons.filter(a => {
-              const n = a.name.toLowerCase().trim();
-              return !(n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto') || n === 'rastreador');
-          }).length > 0 && (
-            <section className="bg-gray-50 rounded-[1.5rem] p-6 border border-gray-100">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Serviços Opcionais Selecionados</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {selectedAddons.filter(a => {
-                    const n = a.name.toLowerCase().trim();
-                    return !(n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto') || n === 'rastreador');
-                }).map((addon, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm font-bold text-gray-700 bg-white p-3 rounded-xl border border-gray-100">
-                    <Plus size={14} className="text-primary" /> {addon.name}
-                  </div>
-                ))}
+            {fipeLoading && (
+              <div className="flex items-center gap-2 text-primary text-sm font-semibold justify-center py-4">
+                <Loader2 className="animate-spin" size={16} /> Consultando FIPE...
               </div>
-            </section>
-          )}
+            )}
 
-          {/* Participação */}
-          <div className="text-center px-4">
-            <p className="text-[11px] text-gray-500 uppercase tracking-widest font-medium">Cota de participação em sinistro: <strong className="text-gray-800">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></p>
-          </div>
+            {vehicle.fipeValue && !fipeLoading && (
+              <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded uppercase tracking-wider">
+                    ✓ FIPE Validada
+                  </span>
+                  <span className="text-xs text-gray-500">Cód: {vehicle.fipeCode}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500">Valor FIPE</p>
+                    <p className="font-bold text-lg text-secondary">
+                      R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Categoria Automática</p>
+                    <p className="font-bold text-primary">
+                      {categories.find(c => c.id === vehicle.category)?.name || 'Desconhecida'}
+                    </p>
+                  </div>
+                </div>
 
-          {/* Ações */}
-          <div className="flex flex-col gap-3 pt-4">
-            {!savedSlug ? (
-              <button onClick={saveQuote} disabled={saving} className="bg-primary text-white py-5 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20 transition-all">
-                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />} Gerar Proposta Oficial
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button onClick={() => handleWhatsApp()} className="bg-green-500 text-white py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm transition-all hover:bg-green-600">
-                    <Send size={18} /> WhatsApp
-                  </button>
-                  <button onClick={handleCopyLink} className="bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm transition-all hover:bg-red-600">
-                    <Copy size={18} /> {copied ? 'Copiado' : 'Link'}
-                  </button>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => handlePrint()} className="flex-1 bg-white border border-gray-200 text-gray-600 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all">
-                    <Printer size={14} className="inline mr-1" /> Imprimir
-                  </button>
-                  <button onClick={() => navigate('/dashboard')} className="flex-1 bg-white border border-gray-200 text-gray-400 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all">
-                    <ArrowLeft size={14} className="inline mr-1" /> Painel
-                  </button>
-                </div>
+                {modelStatus === 'restricted' && (
+                  <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                    ⚠️ Este veículo NÃO É ACEITO pela Auto Excelência.
+                  </div>
+                )}
+                {modelStatus === 'consult' && (
+                  <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                    ⚠️ Este veículo requer CONSULTA PRÉVIA. Venda sujeita a análise.
+                  </div>
+                )}
+                {!vehicle.category && modelStatus !== 'restricted' && (
+                  <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-sm">
+                    Não foi possível identificar a categoria automaticamente. Por favor, verifique com o administrador.
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Navegação Inferior Steps 1-3 */}
-      {step < 4 && (
-        <div className="mt-12 flex justify-between items-center px-4">
-          {step > 1 ? (
-            <button onClick={handlePrevStep} className="text-gray-400 font-bold text-[10px] uppercase tracking-widest hover:text-gray-600 transition-colors">
-              <ChevronLeft size={16} className="inline" /> Voltar
-            </button>
-          ) : <div />}
-          <button 
-            onClick={handleNextStep} 
-            disabled={(step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.category || modelStatus === 'restricted'))} 
-            className="bg-primary text-white px-10 py-4 rounded-xl font-black uppercase tracking-widest shadow-sm disabled:opacity-20"
-          >
-            Próximo
-          </button>
+      {step === 3 && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
+              <Plus size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Serviços Adicionais</h2>
+              <p className="text-sm text-gray-500">Escolha o que incluir na proteção.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            {addons.map((addon) => {
+              const isSelected = selectedAddons.find(a => a.id === addon.id);
+              return (
+                <button
+                  key={addon.id}
+                  onClick={() => toggleAddon(addon)}
+                  className={clsx(
+                    "card p-4 flex items-center justify-between text-left transition-all",
+                    isSelected ? "border-primary bg-red-50/50" : "hover:border-gray-300"
+                  )}
+                >
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-800">{addon.name}</h4>
+                    <p className="text-xs text-gray-500">{addon.description || 'Proteção adicional para seu veículo.'}</p>
+                  </div>
+                  <div className="text-right flex items-center gap-4">
+                    <p className="font-bold text-secondary">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <div className={clsx(
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                      isSelected ? "bg-primary border-primary text-white" : "border-gray-200"
+                    )}>
+                      {isSelected && <Check size={14} />}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      {step === 4 && result && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="text-green-500" size={40} />
+            </div>
+            <h2 className="text-2xl font-bold">Cotação Finalizada!</h2>
+            <p className="text-gray-500">Confira os valores antes de enviar.</p>
+          </div>
+
+          <div className="card divide-y divide-gray-100 p-0 overflow-hidden">
+            <div className="p-6 bg-secondary text-white">
+              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Total Mensal</p>
+              <h3 className="text-4xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Veículo</span>
+                <span className="font-bold text-secondary text-right">{vehicle.brand} {vehicle.model} ({vehicle.year})</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Valor FIPE</span>
+                <span className="font-bold text-secondary">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Categoria</span>
+                <span className="bg-red-50 text-primary text-xs font-black px-2 py-1 rounded uppercase">{result.categoryName}</span>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-3 bg-gray-50/50">
+              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Resumo Financeiro</h4>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Valor Base</span>
+                <span className="font-medium">R$ {result.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Adicionais</span>
+                <span className="font-medium">R$ {(result.boletoValue + result.trackerValue + result.optionalAddonsValue + result.glassValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              {selectedAddons.length > 0 && (
+                <div className="pl-4 border-l-2 border-gray-100 mt-2 space-y-1">
+                  {selectedAddons.map(a => (
+                    <div key={a.id} className="flex justify-between text-xs text-gray-500">
+                      <span>+ {a.name}</span>
+                      <span>R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                <span className="text-gray-700 font-bold">Participação Evento</span>
+                <span className="font-bold text-primary">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700 font-bold">Adesão/Vistoria</span>
+                <span className="font-bold">R$ 200,00</span>
+              </div>
+            </div>
+          </div>
+
+          {!savedSlug ? (
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={saveQuote} 
+                disabled={saving}
+                className="btn-primary flex items-center justify-center gap-2 py-4"
+              >
+                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                Salvar Cotação
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 mt-6">
+              <button onClick={handleCopyLink} className="btn-primary flex items-center justify-center gap-2 py-4">
+                <Copy size={20} />
+                {copied ? 'Link copiado com sucesso!' : 'Copiar link da cotação'}
+              </button>
+              <button onClick={() => handleWhatsApp()} className="btn-secondary flex items-center justify-center gap-2 bg-green-50 border-green-200 text-green-700 py-3">
+                <Send size={18} />
+                Enviar no WhatsApp
+              </button>
+              <button 
+                onClick={() => { 
+                  localStorage.removeItem('consultor_nome');
+                  localStorage.removeItem('consultor_cidade');
+                  navigate('/dashboard'); 
+                }} 
+                className="btn-secondary flex items-center justify-center gap-2 py-3"
+              >
+                <ArrowLeft size={18} />
+                Voltar (Nova Cotação)
+              </button>
+              <button onClick={handlePrint} className="btn-secondary flex items-center justify-center gap-2 py-3">
+                <Printer size={18} />
+                Imprimir
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Navigation Buttons */}
+      <div className="fixed bottom-24 left-0 right-0 px-6 md:static md:px-0 md:mt-10 flex justify-between pointer-events-none">
+        {step > 1 && step < 4 && (
+          <button 
+            onClick={handlePrevStep}
+            className="btn-secondary bg-white shadow-xl flex items-center gap-2 pointer-events-auto"
+          >
+            <ChevronLeft size={20} />
+            Voltar
+          </button>
+        )}
+        {step < 4 && (
+          <button 
+            onClick={handleNextStep}
+            disabled={
+              (step === 1 && (!client.name || !client.whatsapp)) ||
+              (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted'))
+            }
+            className={clsx(
+              "btn-primary shadow-xl flex items-center gap-2 ml-auto pointer-events-auto",
+              ((step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted'))) && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            Próximo
+            <ChevronRight size={20} />
+          </button>
+        )}
+      </div>
     </div>
   );
 };
