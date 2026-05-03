@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, UserCircle } from 'lucide-react';
+import { UserCircle } from 'lucide-react';
 
 const CONSULTANTS = [
   { name: 'Douglas', city: 'São Francisco do Sul' },
