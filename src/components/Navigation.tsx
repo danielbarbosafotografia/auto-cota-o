@@ -19,7 +19,6 @@ export const Sidebar = () => {
   const isAdmin = profile?.role === 'admin';
 
   const sellerLinks = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/dashboard', icon: PlusCircle, label: 'Nova Cotação' },
     { to: '/historico', icon: History, label: 'Histórico' },
     { to: '/clientes', icon: Users, label: 'Clientes' },
@@ -39,7 +38,7 @@ export const Sidebar = () => {
   return (
     <div className="hidden md:flex flex-col w-64 bg-secondary text-white h-screen sticky top-0 p-4">
       <div className="flex items-center gap-3 px-2 mb-10 mt-4">
-        <img src="/logo.png" alt="Auto Excelência" className="w-44 h-auto object-contain bg-white px-3 py-2 rounded-xl" />
+        <img src="/logo.png" alt="Auto Excelência" className="w-44 h-auto object-contain" />
       </div>
 
       <nav className="flex-1 space-y-1">
@@ -76,7 +75,6 @@ export const BottomNav = () => {
   const isAdmin = profile?.role === 'admin';
 
   const links = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { to: '/dashboard', icon: PlusCircle, label: 'Cotar' },
     { to: '/historico', icon: History, label: 'Histórico' },
     { to: '/perfil', icon: User, label: 'Perfil' },
