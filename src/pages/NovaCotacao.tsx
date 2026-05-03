@@ -16,11 +16,11 @@ import {
   ChevronLeft,
   Check,
   Send,
-  Printer,
   Save,
   Loader2,
   Copy,
-  ArrowLeft
+  ArrowLeft,
+  ShieldCheck
 } from 'lucide-react';
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
@@ -140,14 +140,9 @@ const NovaCotacao = () => {
     setFipeLoading(true);
     fetchFipeValue(fipeType, selectedBrandCode, selectedModelCode, selectedYearCode)
       .then((data) => {
-        // Parse FIPE Value "R$ 15.000,00" to 15000
         const numericValue = data.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-        
-        // Auto categorize
         const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType);
         setModelStatus(status);
-
-        // Find the category ID from the loaded categories
         const matchedCategory = categories.find(c => c.name.toUpperCase() === categoryName);
 
         setVehicle({
@@ -222,11 +217,11 @@ const NovaCotacao = () => {
           category_name: result.categoryName,
           consultant_name: localStorage.getItem('consultor_nome'),
           consultant_city: localStorage.getItem('consultor_cidade'),
-          base_monthly_value: result.baseMonthlyValue,
-          addons_total: result.addonsTotal,
+          base_monthly_value: result.fipeComponentValue,
+          addons_total: result.boletoValue + result.trackerValue + result.optionalAddonsValue + result.glassValue,
           final_monthly_value: result.finalMonthlyValue,
           participation_value: result.participationValue,
-          inspection_fee: 150, // Example fixed fee
+          inspection_fee: 200,
           public_slug: slug,
           status: 'completed'
         })
@@ -235,7 +230,6 @@ const NovaCotacao = () => {
 
       if (error) throw error;
 
-      // Save quote addons
       if (selectedAddons.length > 0) {
         const quoteAddons = selectedAddons.map(a => ({
           quote_id: quote.id,
@@ -256,8 +250,16 @@ const NovaCotacao = () => {
   };
 
   const handleWhatsApp = (slug?: string) => {
-    const finalSlug = slug || savedSlug || 'TODO';
-    const message = `Olá, segue sua cotação da Auto Excelência:\n${window.location.origin}/p/${finalSlug}`;
+    if (!result) return;
+    const finalSlug = slug || savedSlug;
+    const message = `Olá! Aqui está a sua cotação da Auto Excelência.
+
+*🚗 VEÍCULO:* ${vehicle.brand} ${vehicle.model}
+*💰 MENSALIDADE:* R$ ${result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+
+Confira todos os benefícios e detalhes no link abaixo:
+${window.location.origin}/p/${finalSlug}`;
+
     window.open(`https://wa.me/55${client.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -266,10 +268,6 @@ const NovaCotacao = () => {
     navigator.clipboard.writeText(`${window.location.origin}/p/${savedSlug}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handlePrint = () => {
-    window.open(`/p/${savedSlug}`, '_blank');
   };
 
   return (
@@ -307,7 +305,7 @@ const NovaCotacao = () => {
             </div>
           </div>
           
-          <div className="card">
+          <div className="card p-6">
             <div className="space-y-4">
               <div>
                 <label className="label">Nome completo</label>
@@ -346,45 +344,28 @@ const NovaCotacao = () => {
             </div>
           </div>
 
-          <div className="card space-y-4">
+          <div className="card p-6 space-y-4">
             <div className="flex gap-4 mb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="fipeType" value="carros" checked={fipeType === 'carros'} onChange={() => setFipeType('carros')} /> Carro
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="fipeType" value="motos" checked={fipeType === 'motos'} onChange={() => setFipeType('motos')} /> Moto
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="fipeType" value="caminhoes" checked={fipeType === 'caminhoes'} onChange={() => setFipeType('caminhoes')} /> Caminhão
-              </label>
+              {(['carros', 'motos', 'caminhoes'] as const).map(type => (
+                <label key={type} className="flex items-center gap-2 cursor-pointer capitalize">
+                  <input type="radio" name="fipeType" value={type} checked={fipeType === type} onChange={() => setFipeType(type)} /> {type.replace('oes', 'ão')}
+                </label>
+              ))}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Marca</label>
-                <select 
-                  className="input-field"
-                  value={selectedBrandCode}
-                  onChange={e => setSelectedBrandCode(e.target.value)}
-                >
+                <select className="input-field" value={selectedBrandCode} onChange={e => setSelectedBrandCode(e.target.value)}>
                   <option value="">Selecione...</option>
-                  {fipeBrands.map(b => (
-                    <option key={b.codigo} value={b.codigo}>{b.nome}</option>
-                  ))}
+                  {fipeBrands.map(b => <option key={b.codigo} value={b.codigo}>{b.nome}</option>)}
                 </select>
               </div>
               <div>
                 <label className="label">Modelo</label>
-                <select 
-                  className="input-field"
-                  value={selectedModelCode}
-                  onChange={e => setSelectedModelCode(e.target.value)}
-                  disabled={!selectedBrandCode}
-                >
+                <select className="input-field" value={selectedModelCode} onChange={e => setSelectedModelCode(e.target.value)} disabled={!selectedBrandCode}>
                   <option value="">Selecione...</option>
-                  {fipeModels.map(m => (
-                    <option key={m.codigo} value={m.codigo}>{m.nome}</option>
-                  ))}
+                  {fipeModels.map(m => <option key={m.codigo} value={m.codigo}>{m.nome}</option>)}
                 </select>
               </div>
             </div>
@@ -392,27 +373,14 @@ const NovaCotacao = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Ano</label>
-                <select 
-                  className="input-field"
-                  value={selectedYearCode}
-                  onChange={e => setSelectedYearCode(e.target.value)}
-                  disabled={!selectedModelCode}
-                >
+                <select className="input-field" value={selectedYearCode} onChange={e => setSelectedYearCode(e.target.value)} disabled={!selectedModelCode}>
                   <option value="">Selecione...</option>
-                  {fipeYears.map(y => (
-                    <option key={y.codigo} value={y.codigo}>{y.nome}</option>
-                  ))}
+                  {fipeYears.map(y => <option key={y.codigo} value={y.codigo}>{y.nome}</option>)}
                 </select>
               </div>
               <div>
                 <label className="label">Placa (Opcional)</label>
-                <input 
-                  type="text" 
-                  className="input-field uppercase" 
-                  placeholder="AAA-0000"
-                  value={vehicle.plate}
-                  onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})}
-                />
+                <input type="text" className="input-field uppercase" placeholder="AAA-0000" value={vehicle.plate} onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})} />
               </div>
             </div>
 
@@ -425,42 +393,21 @@ const NovaCotacao = () => {
             {vehicle.fipeValue && !fipeLoading && (
               <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded uppercase tracking-wider">
-                    ✓ FIPE Validada
-                  </span>
+                  <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded uppercase tracking-wider">✓ FIPE Validada</span>
                   <span className="text-xs text-gray-500">Cód: {vehicle.fipeCode}</span>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-500">Valor FIPE</p>
-                    <p className="font-bold text-lg text-secondary">
-                      R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
+                    <p className="font-bold text-lg text-secondary">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Categoria Automática</p>
-                    <p className="font-bold text-primary">
-                      {categories.find(c => c.id === vehicle.category)?.name || 'Desconhecida'}
-                    </p>
+                    <p className="font-bold text-primary">{categories.find(c => c.id === vehicle.category)?.name || 'Desconhecida'}</p>
                   </div>
                 </div>
-
-                {modelStatus === 'restricted' && (
-                  <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
-                    ⚠️ Este veículo NÃO É ACEITO pela Auto Excelência.
-                  </div>
-                )}
-                {modelStatus === 'consult' && (
-                  <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
-                    ⚠️ Este veículo requer CONSULTA PRÉVIA. Venda sujeita a análise.
-                  </div>
-                )}
-                {!vehicle.category && modelStatus !== 'restricted' && (
-                  <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-sm">
-                    Não foi possível identificar a categoria automaticamente. Por favor, verifique com o administrador.
-                  </div>
-                )}
+                {modelStatus === 'restricted' && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold mt-4">⚠️ Este veículo NÃO É ACEITO.</div>}
+                {modelStatus === 'consult' && <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold mt-4">⚠️ Este veículo requer CONSULTA PRÉVIA.</div>}
               </div>
             )}
           </div>
@@ -479,34 +426,65 @@ const NovaCotacao = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
-            {addons.map((addon) => {
-              const isSelected = selectedAddons.find(a => a.id === addon.id);
-              return (
-                <button
-                  key={addon.id}
-                  onClick={() => toggleAddon(addon)}
-                  className={clsx(
-                    "card p-4 flex items-center justify-between text-left transition-all",
-                    isSelected ? "border-primary bg-red-50/50" : "hover:border-gray-300"
-                  )}
-                >
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-800">{addon.name}</h4>
-                    <p className="text-xs text-gray-500">{addon.description || 'Proteção adicional para seu veículo.'}</p>
-                  </div>
-                  <div className="text-right flex items-center gap-4">
-                    <p className="font-bold text-secondary">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    <div className={clsx(
-                      "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
-                      isSelected ? "bg-primary border-primary text-white" : "border-gray-200"
-                    )}>
-                      {isSelected && <Check size={14} />}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <CheckCircle2 size={16} /> Itens Obrigatórios / Fixos
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                {rules.find(r => r.category_id === vehicle.category)?.tracker_required && (
+                  <div className="card p-4 flex items-center justify-between border-primary bg-red-50/30">
+                    <div>
+                      <h4 className="font-bold text-gray-800">Rastreador</h4>
+                      <p className="text-xs text-gray-500">Obrigatório para esta categoria.</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-secondary">R$ 50,00</p>
+                      <span className="text-[10px] font-bold text-primary uppercase">Incluso</span>
                     </div>
                   </div>
-                </button>
-              );
-            })}
+                )}
+                <div className="card p-4 flex items-center justify-between border-primary bg-red-50/30">
+                  <div>
+                    <h4 className="font-bold text-gray-800">Taxa Administrativa</h4>
+                    <p className="text-xs text-gray-500">Emissão e processamento.</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-secondary">R$ 13,50</p>
+                    <span className="text-[10px] font-bold text-primary uppercase">Obrigatória</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Serviços Opcionais</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {addons.map((addon) => {
+                  const rule = rules.find(r => r.category_id === vehicle.category);
+                  const isTracker = addon.name.toLowerCase().trim() === 'rastreador';
+                  if (isTracker && rule?.tracker_required) return null;
+                  const n = addon.name.toLowerCase().trim();
+                  if (n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto')) return null;
+
+                  const isSelected = selectedAddons.find(a => a.id === addon.id);
+                  return (
+                    <button key={addon.id} onClick={() => toggleAddon(addon)} className={clsx("card p-4 flex items-center justify-between text-left transition-all", isSelected ? "border-primary bg-red-50/50" : "hover:border-gray-300")}>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-gray-800">{addon.name}</h4>
+                        <p className="text-xs text-gray-500">{addon.description || 'Proteção adicional.'}</p>
+                      </div>
+                      <div className="text-right flex items-center gap-4">
+                        <p className="font-bold text-secondary">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <div className={clsx("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", isSelected ? "bg-primary border-primary text-white" : "border-gray-200")}>
+                          {isSelected && <Check size={14} />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -518,130 +496,136 @@ const NovaCotacao = () => {
               <CheckCircle2 className="text-green-500" size={40} />
             </div>
             <h2 className="text-2xl font-bold">Cotação Finalizada!</h2>
-            <p className="text-gray-500">Confira os valores antes de enviar.</p>
+            <p className="text-gray-500 text-sm">Confira os detalhes da proteção abaixo.</p>
           </div>
 
           <div className="card divide-y divide-gray-100 p-0 overflow-hidden">
-            <div className="p-6 bg-secondary text-white">
-              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Total Mensal</p>
-              <h3 className="text-4xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Veículo</span>
-                <span className="font-bold text-secondary text-right">{vehicle.brand} {vehicle.model} ({vehicle.year})</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Valor FIPE</span>
-                <span className="font-bold text-secondary">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500">Categoria</span>
-                <span className="bg-red-50 text-primary text-xs font-black px-2 py-1 rounded uppercase">{result.categoryName}</span>
+            <div className="p-6 space-y-4 text-center border-b border-gray-100">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm text-left">
+                <div><span className="text-gray-500 block text-xs">Modelo</span><strong className="text-gray-800">{vehicle.brand} {vehicle.model}</strong></div>
+                <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{vehicle.plate || '---'}</strong></div>
+                <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+                <div><span className="text-gray-500 block text-xs">Taxa Administrativa</span><strong className="text-gray-800">R$ 13,50</strong></div>
+                <div><span className="text-gray-500 block text-xs">Adesão</span><strong className="text-gray-800">R$ 200,00</strong></div>
               </div>
             </div>
 
-            <div className="p-6 space-y-3 bg-gray-50/50">
-              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Resumo Financeiro</h4>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Valor Base</span>
-                <span className="font-medium">R$ {result.baseMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Adicionais</span>
-                <span className="font-medium">R$ {result.addonsTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              {selectedAddons.length > 0 && (
-                <div className="pl-4 border-l-2 border-gray-100 mt-2 space-y-1">
-                  {selectedAddons.map(a => (
-                    <div key={a.id} className="flex justify-between text-xs text-gray-500">
-                      <span>+ {a.name}</span>
-                      <span>R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <div className="p-8 bg-secondary text-white text-center relative overflow-hidden">
+              <p className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] mb-2">Mensalidade Total</p>
+              <h3 className="text-5xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[50px] rounded-full -mr-16 -mt-16"></div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle2 size={14} /> 1. Inclusos no Plano (Padrão)
+                </h4>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    'Proteção contra Roubo e Furto',
+                    'Proteção contra Colisão e Incêndio',
+                    'Assistência 24h em todo Brasil',
+                    'Cobertura para terceiros até R$ 200.000,00',
+                    `${result.glassPercentage}% de proteção para retrovisor, para-brisa e faróis`,
+                    'Sem perfil de condutor'
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50/50 p-2 rounded-lg border border-gray-100">
+                      <Check size={14} className="text-green-500" /> {item}
                     </div>
                   ))}
                 </div>
-              )}
-              <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-                <span className="text-gray-700 font-bold">Participação Evento</span>
-                <span className="font-bold text-primary">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-700 font-bold">Adesão/Vistoria</span>
-                <span className="font-bold">R$ 150,00</span>
+
+              {(result.trackerValue > 0 || result.boletoValue > 0) && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
+                    <ShieldCheck size={14} /> 2. Itens Obrigatórios
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {result.trackerValue > 0 && (
+                      <div className="flex justify-between items-center text-sm font-bold text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                        <span>✔ Rastreador</span>
+                        <span className="text-secondary">R$ {result.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-sm font-bold text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                      <span>✔ Taxa administrativa</span>
+                      <span className="text-secondary">R$ {result.boletoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {result.optionalAddonsValue > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-orange-600 uppercase tracking-wider flex items-center gap-2">
+                    <Plus size={14} /> 3. Opcionais Selecionados
+                  </h4>
+                  <div className="grid grid-cols-1 gap-2">
+                    {selectedAddons.filter(a => {
+                      const n = a.name.toLowerCase();
+                      return n !== 'boleto' && n !== 'rastreador' && n !== 'taxa administrativa';
+                    }).map(a => (
+                      <div key={a.id} className="flex justify-between items-center text-sm text-gray-600 bg-orange-50/30 p-2 rounded-lg border border-orange-100/50">
+                        <span>+ {a.name}</span>
+                        <span className="font-bold">R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-6 bg-gray-50/80 space-y-4 rounded-2xl border border-gray-100">
+                <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">Resumo da Mensalidade</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm"><span>Valor FIPE</span><span className="font-medium">R$ {result.fipeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between text-sm"><span>Categoria</span><span className="font-medium">{result.categoryType} ({result.categoryName})</span></div>
+                  {result.fipePercentage > 0 && <div className="flex justify-between text-sm"><span>Percentual</span><span className="font-medium">{(result.fipePercentage * 100).toFixed(2)}%</span></div>}
+                  <div className="flex justify-between text-sm"><span>Base</span><span className="font-medium">R$ {result.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between text-sm"><span>Taxa Adm.</span><span className="font-medium">R$ {result.boletoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                  {result.trackerValue > 0 && <div className="flex justify-between text-sm"><span>Rastreador</span><span className="font-medium">R$ {result.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
+                  {result.glassValue > 0 && <div className="flex justify-between text-sm"><span>Vidros (Extra)</span><span className="font-medium">R$ {result.glassValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
+                  <div className="flex justify-between text-sm"><span>Vidros (%)</span><span className="font-medium">{result.glassPercentage}%</span></div>
+                  {result.optionalAddonsValue > 0 && <div className="flex justify-between text-sm"><span>Opcionais</span><span className="font-medium">R$ {result.optionalAddonsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
+                </div>
+                <div className="pt-4 border-t border-dashed border-gray-300 space-y-2">
+                  <div className="flex justify-between text-xs"><span className="text-gray-400 uppercase">Participação</span><span className="font-bold">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-gray-400 uppercase">Adesão</span><span className="font-bold text-gray-700">R$ 200,00</span></div>
+                </div>
               </div>
             </div>
           </div>
 
-          {!savedSlug ? (
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={saveQuote} 
-                disabled={saving}
-                className="btn-primary flex items-center justify-center gap-2 py-4"
-              >
-                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                Salvar Cotação
+          <div className="flex flex-col gap-3 mt-6">
+            {!savedSlug ? (
+              <button onClick={saveQuote} disabled={saving} className="btn-primary py-4 flex justify-center gap-2">
+                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />} Salvar Cotação
               </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 mt-6">
-              <button onClick={handleCopyLink} className="btn-primary flex items-center justify-center gap-2 py-4">
-                <Copy size={20} />
-                {copied ? 'Link copiado com sucesso!' : 'Copiar link da cotação'}
-              </button>
-              <button onClick={() => handleWhatsApp()} className="btn-secondary flex items-center justify-center gap-2 bg-green-50 border-green-200 text-green-700 py-3">
-                <Send size={18} />
-                Enviar no WhatsApp
-              </button>
-              <button 
-                onClick={() => { 
-                  localStorage.removeItem('consultor_nome');
-                  localStorage.removeItem('consultor_cidade');
-                  navigate('/dashboard'); 
-                }} 
-                className="btn-secondary flex items-center justify-center gap-2 py-3"
-              >
-                <ArrowLeft size={18} />
-                Voltar (Nova Cotação)
-              </button>
-              <button onClick={handlePrint} className="btn-secondary flex items-center justify-center gap-2 py-3">
-                <Printer size={18} />
-                Imprimir
-              </button>
-            </div>
-          )}
+            ) : (
+              <>
+                <button onClick={handleCopyLink} className="btn-primary py-4 flex justify-center gap-2">
+                  <Copy size={20} /> {copied ? 'Copiado!' : 'Copiar Link'}
+                </button>
+                <button onClick={() => handleWhatsApp()} className="btn-secondary py-3 flex justify-center gap-2 bg-green-50 border-green-200 text-green-700">
+                  <Send size={18} /> WhatsApp
+                </button>
+                <button onClick={() => navigate('/dashboard')} className="btn-secondary py-3 flex justify-center gap-2">
+                  <ArrowLeft size={18} /> Voltar
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Navigation Buttons */}
-      <div className="fixed bottom-24 left-0 right-0 px-6 md:static md:px-0 md:mt-10 flex justify-between pointer-events-none">
-        {step > 1 && step < 4 && (
-          <button 
-            onClick={handlePrevStep}
-            className="btn-secondary bg-white shadow-xl flex items-center gap-2 pointer-events-auto"
-          >
-            <ChevronLeft size={20} />
-            Voltar
-          </button>
-        )}
-        {step < 4 && (
-          <button 
-            onClick={handleNextStep}
-            disabled={
-              (step === 1 && (!client.name || !client.whatsapp)) ||
-              (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted'))
-            }
-            className={clsx(
-              "btn-primary shadow-xl flex items-center gap-2 ml-auto pointer-events-auto",
-              ((step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted'))) && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            Próximo
-            <ChevronRight size={20} />
-          </button>
-        )}
-      </div>
+      {/* Navigation */}
+      {step < 4 && (
+        <div className="mt-10 flex justify-between">
+          {step > 1 && <button onClick={handlePrevStep} className="btn-secondary flex items-center gap-2"><ChevronLeft size={20} /> Voltar</button>}
+          <button onClick={handleNextStep} disabled={(step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.category || modelStatus === 'restricted'))} className="btn-primary flex items-center gap-2 ml-auto">Próximo <ChevronRight size={20} /></button>
+        </div>
+      )}
     </div>
   );
 };

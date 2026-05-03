@@ -1,11 +1,19 @@
 import type { PricingRule, Addon } from '../types';
 
 export type CalculationResult = {
-  baseMonthlyValue: number;
-  addonsTotal: number;
+  fipeValue: number;
+  fipePercentage: number;
+  fipeComponentValue: number; // The "Base calculada" part (FIPE * % or fixed base)
+  fixedBaseValue: number;     // Any other fixed part if needed
+  boletoValue: number;        // Always 13.50
+  trackerValue: number;       // 50.00 if mandatory or selected
+  glassValue: number;         // 15.90 specifically for Importado <= 30k
+  optionalAddonsValue: number;
   finalMonthlyValue: number;
   participationValue: number;
   categoryName: string;
+  glassPercentage: number;
+  categoryType: 'NACIONAL' | 'IMPORTADO' | 'ESPECIAL' | 'OUTROS';
 };
 
 export const calculateQuote = (
@@ -14,23 +22,67 @@ export const calculateQuote = (
   selectedAddons: Addon[],
   categoryName: string
 ): CalculationResult => {
-  let baseMonthlyValue = 0;
-  let participationValue = 0;
+  const cat = categoryName.toUpperCase();
+  let categoryType: 'NACIONAL' | 'IMPORTADO' | 'ESPECIAL' | 'OUTROS' = 'OUTROS';
+  
+  if (cat.includes('NACIONAL') && !cat.includes('IMPORTAD')) categoryType = 'NACIONAL';
+  else if (cat.includes('IMPORTAD')) categoryType = 'IMPORTADO';
+  else if (cat.includes('ESPECIAL')) categoryType = 'ESPECIAL';
 
-  // 1. Calculate Base Monthly Value
-  if (fipeValue <= rule.fipe_limit) {
-    baseMonthlyValue = Number(rule.fixed_price);
-  } else {
-    // If there's a percentage for above limit
-    if (rule.percentage_above_limit > 0) {
-      baseMonthlyValue = fipeValue * Number(rule.percentage_above_limit);
+  let fipePercentage = Number(rule.percentage_above_limit);
+  let fipeComponentValue = 0;
+  let glassValue = 0;
+  let glassPercentage = 60; // Default for Nacional
+  const boletoValue = 13.50;
+
+  if (categoryType === 'NACIONAL') {
+    if (fipeValue > 30000) {
+      fipePercentage = 0.0025;
+      fipeComponentValue = fipeValue * fipePercentage;
     } else {
-      // If no percentage, use fixed (some categories might be flat or logic varies)
-      baseMonthlyValue = Number(rule.fixed_price);
+      fipePercentage = 0;
+      fipeComponentValue = 75.00; // 88.50 - 13.50
     }
+    glassPercentage = 60;
+  } else if (categoryType === 'IMPORTADO') {
+    if (fipeValue > 30000) {
+      fipePercentage = 0.0035;
+      fipeComponentValue = fipeValue * fipePercentage;
+    } else {
+      fipePercentage = 0;
+      fipeComponentValue = 105.00; // Part of 134.40
+      glassValue = 15.90; // Part of 134.40
+    }
+    glassPercentage = 50;
+  } else {
+    // Especial or others use the rule percentage
+    fipeComponentValue = fipeValue * fipePercentage;
+    glassPercentage = 50;
   }
 
-  // 2. Calculate Participation Value
+  // 3. Identify specific addons
+  let trackerValue = 0;
+  if (rule.tracker_required) {
+    trackerValue = 50.00;
+  } else {
+    const trackerAddon = selectedAddons.find(a => a.name.toLowerCase() === 'rastreador');
+    if (trackerAddon) trackerValue = Number(trackerAddon.price);
+  }
+
+  // 4. Calculate Other Optional Addons
+  const optionalAddonsValue = selectedAddons.reduce((acc, addon) => {
+    const name = addon.name.toLowerCase();
+    // Don't count boleto and tracker twice as they are handled above
+    if (name === 'boleto' || name === 'taxa administrativa') return acc;
+    if (name === 'rastreador') return acc;
+    return acc + Number(addon.price);
+  }, 0);
+
+  // 5. Final Monthly Value
+  const finalMonthlyValue = fipeComponentValue + boletoValue + glassValue + trackerValue + optionalAddonsValue;
+
+  // 6. Calculate Participation Value
+  let participationValue = 0;
   if (fipeValue <= rule.participation_limit) {
     participationValue = Number(rule.participation_fixed);
   } else {
@@ -41,24 +93,19 @@ export const calculateQuote = (
     }
   }
 
-  // 3. Addons
-  let addonsTotal = selectedAddons.reduce((acc, addon) => acc + Number(addon.price), 0);
-
-  // 4. Tracker logic
-  // Check if Tracker (R$ 50) is mandatory and NOT already selected
-  const hasTrackerAddon = selectedAddons.find(a => a.name.toLowerCase().includes('rastreador'));
-  if (rule.tracker_required && !hasTrackerAddon) {
-    // We should ideally ensure the addon exists in the DB, but for now we add the price
-    addonsTotal += 50.00;
-  }
-
-  const finalMonthlyValue = baseMonthlyValue + addonsTotal;
-
   return {
-    baseMonthlyValue,
-    addonsTotal,
+    fipeValue,
+    fipePercentage,
+    fipeComponentValue,
+    fixedBaseValue: 0,
+    boletoValue,
+    trackerValue,
+    glassValue,
+    optionalAddonsValue,
     finalMonthlyValue,
     participationValue,
     categoryName,
+    glassPercentage,
+    categoryType
   };
 };
