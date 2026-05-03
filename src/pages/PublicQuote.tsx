@@ -219,7 +219,27 @@ Link oficial: ${window.location.href}`;
           </div>
         </section>
 
-        {/* ➕ Benefícios opcionais */}
+        {/* ✅ Opcionais Contratados */}
+        {addons.length > 0 && (
+          <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
+              <div className="bg-green-100 text-green-600 p-2 rounded-lg"><CheckCircle2 size={20} /></div>
+              <h2 className="text-lg font-bold text-gray-800">Opcionais Inclusos na Cotação</h2>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3">
+                {addons.map(addon => (
+                  <div key={addon.id} className="flex justify-between items-center p-3 bg-green-50/50 rounded-xl border border-green-100">
+                    <span className="text-sm text-gray-700 font-medium">{addon.name}</span>
+                    <span className="text-sm font-bold text-green-700">Incluso</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ➕ Benefícios opcionais (Upsell) */}
         <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
             <div className="bg-purple-100 text-purple-600 p-2 rounded-lg"><Plus size={20} /></div>

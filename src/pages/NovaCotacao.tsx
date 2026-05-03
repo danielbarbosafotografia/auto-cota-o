@@ -546,6 +546,16 @@ const NovaCotacao = () => {
                 <span className="text-gray-500">Adicionais</span>
                 <span className="font-medium">R$ {result.addonsTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
+              {selectedAddons.length > 0 && (
+                <div className="pl-4 border-l-2 border-gray-100 mt-2 space-y-1">
+                  {selectedAddons.map(a => (
+                    <div key={a.id} className="flex justify-between text-xs text-gray-500">
+                      <span>+ {a.name}</span>
+                      <span>R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
                 <span className="text-gray-700 font-bold">Participação Evento</span>
                 <span className="font-bold text-primary">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
