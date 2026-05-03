@@ -15,12 +15,7 @@ const CONSULTANTS = [
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const savedName = localStorage.getItem('consultor_nome');
-    if (savedName) {
-      navigate('/nova-cotacao', { replace: true });
-    }
-  }, [navigate]);
+  // Removido o redirecionamento automático para forçar a seleção do consultor a cada login
 
   const selectConsultant = (consultant: { name: string, city: string }) => {
     localStorage.setItem('tipo_usuario', 'consultor');
