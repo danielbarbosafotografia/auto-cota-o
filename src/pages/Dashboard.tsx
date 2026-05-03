@@ -33,8 +33,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center py-10 px-4">
       <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-          <ShieldCheck className="text-primary" size={40} />
+        <div className="mb-6 animate-in fade-in zoom-in duration-700">
+          <img src="/logo.png" alt="Auto Excelência" className="w-48 h-auto mx-auto object-contain" />
         </div>
         <h2 className="text-3xl font-black text-secondary mb-3">Selecione quem é você</h2>
         <p className="text-gray-500 max-w-sm mx-auto">
