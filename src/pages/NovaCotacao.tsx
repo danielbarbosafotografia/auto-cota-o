@@ -11,7 +11,6 @@ import {
   User, 
   Car, 
   Plus, 
-  CheckCircle2, 
   ChevronRight, 
   ChevronLeft,
   Check,
@@ -20,7 +19,12 @@ import {
   Loader2,
   Copy,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  Zap,
+  Info,
+  MapPin,
+  FileText,
+  Printer
 } from 'lucide-react';
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
@@ -270,58 +274,66 @@ ${window.location.origin}/p/${finalSlug}`;
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePrint = () => {
+    if (savedSlug) {
+      window.open(`/p/${savedSlug}`, '_blank');
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto pb-10">
-      <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6 flex flex-col items-center text-center">
-        <p className="text-sm font-medium text-gray-700">Bem-vindo ao sistema oficial da Auto Excelência.</p>
-        <p className="text-sm text-gray-600 mt-1">Você está acessando como <strong className="text-primary">{localStorage.getItem('consultor_nome') || 'Consultor'}</strong> — <strong className="text-primary">{localStorage.getItem('consultor_cidade') || 'Cidade'}/SC</strong>.</p>
-        <p className="text-sm text-gray-600 mt-1">Comece gerando uma nova cotação.</p>
+    <div className="max-w-3xl mx-auto pb-10">
+      <div className="bg-primary/5 border border-primary/10 rounded-3xl p-6 mb-8 flex flex-col items-center text-center">
+        <p className="text-sm font-semibold text-gray-800">Bem-vindo ao sistema oficial da Auto Excelência.</p>
+        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+          <MapPin size={14} className="text-primary" />
+          <span>{localStorage.getItem('consultor_nome') || 'Consultor'} — {localStorage.getItem('consultor_cidade') || 'Cidade'}/SC</span>
+        </div>
       </div>
 
       {/* Stepper Header */}
-      <div className="flex items-center justify-between mb-8 px-2">
+      <div className="flex items-center justify-between mb-10 px-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center">
+          <div key={i} className="flex items-center flex-1 last:flex-none">
             <div className={clsx(
-              "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors",
-              step === i ? "bg-primary text-white" : step > i ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
+              "w-12 h-12 rounded-2xl flex items-center justify-center font-bold transition-all duration-300",
+              step === i ? "bg-primary text-white shadow-lg shadow-primary/20 scale-110" : step > i ? "bg-green-500 text-white" : "bg-gray-100 text-gray-400"
             )}>
-              {step > i ? <Check size={20} /> : i}
+              {step > i ? <Check size={24} /> : i}
             </div>
-            {i < 4 && <div className={clsx("w-8 h-1 mx-2 rounded", step > i ? "bg-green-500" : "bg-gray-200")} />}
+            {i < 4 && <div className={clsx("flex-1 h-1 mx-4 rounded-full transition-colors duration-500", step > i ? "bg-green-500" : "bg-gray-100")} />}
           </div>
         ))}
       </div>
 
       {step === 1 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
-              <User size={24} />
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
+              <User size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Dados do Cliente</h2>
-              <p className="text-sm text-gray-500">Identifique para quem é esta cotação.</p>
+              <h2 className="text-2xl font-black text-gray-900">Dados do Cliente</h2>
+              <p className="text-gray-500">Identifique para quem é esta cotação.</p>
             </div>
           </div>
           
-          <div className="card p-6">
-            <div className="space-y-4">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+            <div className="space-y-6">
               <div>
-                <label className="label">Nome completo</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Nome completo</label>
                 <input 
                   type="text" 
-                  className="input-field" 
-                  placeholder="Nome do cliente"
+                  className="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all text-gray-800 font-medium" 
+                  placeholder="Ex: João Silva"
                   value={client.name}
                   onChange={e => setClient({...client, name: e.target.value})}
                 />
               </div>
               <div>
-                <label className="label">WhatsApp</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">WhatsApp</label>
                 <input 
                   type="tel" 
-                  className="input-field" 
+                  className="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all text-gray-800 font-medium" 
                   placeholder="(00) 00000-0000"
                   value={client.whatsapp}
                   onChange={e => setClient({...client, whatsapp: e.target.value})}
@@ -334,80 +346,83 @@ ${window.location.origin}/p/${finalSlug}`;
 
       {step === 2 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
-              <Car size={24} />
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
+              <Car size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Dados do Veículo (Tabela FIPE)</h2>
-              <p className="text-sm text-gray-500">Selecione o veículo para preenchimento automático.</p>
+              <h2 className="text-2xl font-black text-gray-900">Dados do Veículo</h2>
+              <p className="text-gray-500">Selecione o veículo para preenchimento automático.</p>
             </div>
           </div>
 
-          <div className="card p-6 space-y-4">
-            <div className="flex gap-4 mb-4">
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6">
+            <div className="flex gap-6 mb-4">
               {(['carros', 'motos', 'caminhoes'] as const).map(type => (
-                <label key={type} className="flex items-center gap-2 cursor-pointer capitalize">
-                  <input type="radio" name="fipeType" value={type} checked={fipeType === type} onChange={() => setFipeType(type)} /> {type.replace('oes', 'ão')}
+                <label key={type} className="flex items-center gap-3 cursor-pointer capitalize group">
+                  <input type="radio" name="fipeType" className="w-5 h-5 text-primary focus:ring-primary border-gray-300" value={type} checked={fipeType === type} onChange={() => setFipeType(type)} /> 
+                  <span className={clsx("font-bold text-sm transition-colors", fipeType === type ? "text-primary" : "text-gray-400 group-hover:text-gray-600")}>
+                    {type.replace('oes', 'ão')}
+                  </span>
                 </label>
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="label">Marca</label>
-                <select className="input-field" value={selectedBrandCode} onChange={e => setSelectedBrandCode(e.target.value)}>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Marca</label>
+                <select className="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all text-gray-800 font-medium" value={selectedBrandCode} onChange={e => setSelectedBrandCode(e.target.value)}>
                   <option value="">Selecione...</option>
                   {fipeBrands.map(b => <option key={b.codigo} value={b.codigo}>{b.nome}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Modelo</label>
-                <select className="input-field" value={selectedModelCode} onChange={e => setSelectedModelCode(e.target.value)} disabled={!selectedBrandCode}>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Modelo</label>
+                <select className="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all text-gray-800 font-medium" value={selectedModelCode} onChange={e => setSelectedModelCode(e.target.value)} disabled={!selectedBrandCode}>
                   <option value="">Selecione...</option>
                   {fipeModels.map(m => <option key={m.codigo} value={m.codigo}>{m.nome}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="label">Ano</label>
-                <select className="input-field" value={selectedYearCode} onChange={e => setSelectedYearCode(e.target.value)} disabled={!selectedModelCode}>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Ano</label>
+                <select className="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all text-gray-800 font-medium" value={selectedYearCode} onChange={e => setSelectedYearCode(e.target.value)} disabled={!selectedModelCode}>
                   <option value="">Selecione...</option>
                   {fipeYears.map(y => <option key={y.codigo} value={y.codigo}>{y.nome}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Placa (Opcional)</label>
-                <input type="text" className="input-field uppercase" placeholder="AAA-0000" value={vehicle.plate} onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})} />
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Placa (Opcional)</label>
+                <input type="text" className="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-primary/20 transition-all text-gray-800 font-medium uppercase" placeholder="AAA-0000" value={vehicle.plate} onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})} />
               </div>
             </div>
 
             {fipeLoading && (
-              <div className="flex items-center gap-2 text-primary text-sm font-semibold justify-center py-4">
-                <Loader2 className="animate-spin" size={16} /> Consultando FIPE...
+              <div className="flex items-center gap-3 text-primary text-sm font-black justify-center py-6 bg-primary/5 rounded-2xl">
+                <Loader2 className="animate-spin" size={20} /> CONSULTANDO TABELA FIPE...
               </div>
             )}
 
             {vehicle.fipeValue && !fipeLoading && (
-              <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded uppercase tracking-wider">✓ FIPE Validada</span>
-                  <span className="text-xs text-gray-500">Cód: {vehicle.fipeCode}</span>
+              <div className="mt-8 p-6 bg-[#f8fafc] rounded-3xl border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-[10px] font-black text-white bg-green-500 px-3 py-1.5 rounded-full uppercase tracking-[0.15em]">✓ FIPE Validada</span>
+                  <span className="text-xs font-bold text-gray-400">Ref: {vehicle.fipeCode}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <p className="text-xs text-gray-500">Valor FIPE</p>
-                    <p className="font-bold text-lg text-secondary">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Valor de Mercado</p>
+                    <p className="font-black text-2xl text-secondary">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Categoria Automática</p>
-                    <p className="font-bold text-primary">{categories.find(c => c.id === vehicle.category)?.name || 'Desconhecida'}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Categoria</p>
+                    <p className="font-black text-xl text-primary">{categories.find(c => c.id === vehicle.category)?.name || 'Desconhecida'}</p>
                   </div>
                 </div>
-                {modelStatus === 'restricted' && <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold mt-4">⚠️ Este veículo NÃO É ACEITO.</div>}
-                {modelStatus === 'consult' && <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold mt-4">⚠️ Este veículo requer CONSULTA PRÉVIA.</div>}
+                {modelStatus === 'restricted' && <div className="bg-red-500 text-white p-4 rounded-2xl text-sm font-black mt-6 flex items-center gap-3"><Info size={20} /> ATENÇÃO: VEÍCULO NÃO ACEITO</div>}
+                {modelStatus === 'consult' && <div className="bg-orange-500 text-white p-4 rounded-2xl text-sm font-black mt-6 flex items-center gap-3"><Info size={20} /> REQUER CONSULTA PRÉVIA</div>}
               </div>
             )}
           </div>
@@ -416,68 +431,83 @@ ${window.location.origin}/p/${finalSlug}`;
 
       {step === 3 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
-              <Plus size={24} />
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-primary">
+              <Plus size={28} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Serviços Adicionais</h2>
-              <p className="text-sm text-gray-500">Escolha o que incluir na proteção.</p>
+              <h2 className="text-2xl font-black text-gray-900">Serviços Adicionais</h2>
+              <p className="text-gray-500">Escolha o que incluir na proteção.</p>
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <CheckCircle2 size={16} /> Itens Obrigatórios / Fixos
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2 mb-4">
+                <ShieldCheck size={16} /> Itens Obrigatórios / Fixos
               </h3>
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-4">
                 {rules.find(r => r.category_id === vehicle.category)?.tracker_required && (
-                  <div className="card p-4 flex items-center justify-between border-primary bg-red-50/30">
-                    <div>
-                      <h4 className="font-bold text-gray-800">Rastreador</h4>
-                      <p className="text-xs text-gray-500">Obrigatório para esta categoria.</p>
+                  <div className="bg-white p-6 rounded-3xl flex items-center justify-between border-2 border-primary/10 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary">
+                        <MapPin size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-gray-800">Rastreador</h4>
+                        <p className="text-xs text-gray-500">Obrigatório para segurança do seu veículo.</p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-secondary">R$ 50,00</p>
-                      <span className="text-[10px] font-bold text-primary uppercase">Incluso</span>
+                      <p className="font-black text-xl text-secondary">R$ 50,00</p>
+                      <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">Incluso</span>
                     </div>
                   </div>
                 )}
-                <div className="card p-4 flex items-center justify-between border-primary bg-red-50/30">
-                  <div>
-                    <h4 className="font-bold text-gray-800">Taxa Administrativa</h4>
-                    <p className="text-xs text-gray-500">Emissão e processamento.</p>
+                <div className="bg-white p-6 rounded-3xl flex items-center justify-between border-2 border-primary/10 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary">
+                      <FileText size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-gray-800">Taxa Administrativa</h4>
+                      <p className="text-xs text-gray-500">Emissão, processamento e suporte.</p>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-secondary">R$ 13,50</p>
-                    <span className="text-[10px] font-bold text-primary uppercase">Obrigatória</span>
+                    <p className="font-black text-xl text-secondary">R$ 13,50</p>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-2 py-1 rounded">Obrigatória</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Serviços Opcionais</h3>
-              <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Serviços Opcionais Disponíveis</h3>
+              <div className="grid grid-cols-1 gap-4">
                 {addons.map((addon) => {
                   const rule = rules.find(r => r.category_id === vehicle.category);
-                  const isTracker = addon.name.toLowerCase().trim() === 'rastreador';
-                  if (isTracker && rule?.tracker_required) return null;
                   const n = addon.name.toLowerCase().trim();
                   if (n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto')) return null;
+                  const isTracker = n === 'rastreador';
+                  if (isTracker && rule?.tracker_required) return null;
 
                   const isSelected = selectedAddons.find(a => a.id === addon.id);
                   return (
-                    <button key={addon.id} onClick={() => toggleAddon(addon)} className={clsx("card p-4 flex items-center justify-between text-left transition-all", isSelected ? "border-primary bg-red-50/50" : "hover:border-gray-300")}>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-800">{addon.name}</h4>
-                        <p className="text-xs text-gray-500">{addon.description || 'Proteção adicional.'}</p>
+                    <button key={addon.id} onClick={() => toggleAddon(addon)} className={clsx("group bg-white p-6 rounded-3xl flex items-center justify-between text-left transition-all duration-300 border-2", isSelected ? "border-primary bg-red-50/10 shadow-lg shadow-primary/5" : "border-transparent hover:border-gray-200 hover:shadow-sm")}>
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className={clsx("w-12 h-12 rounded-2xl flex items-center justify-center transition-colors", isSelected ? "bg-primary text-white" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100")}>
+                          <Plus size={24} />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-gray-800">{addon.name}</h4>
+                          <p className="text-xs text-gray-500">{addon.description || 'Proteção extra para você.'}</p>
+                        </div>
                       </div>
-                      <div className="text-right flex items-center gap-4">
-                        <p className="font-bold text-secondary">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                        <div className={clsx("w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors", isSelected ? "bg-primary border-primary text-white" : "border-gray-200")}>
-                          {isSelected && <Check size={14} />}
+                      <div className="text-right flex items-center gap-6">
+                        <p className="font-black text-xl text-secondary">R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <div className={clsx("w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all", isSelected ? "bg-primary border-primary text-white scale-110" : "border-gray-100 group-hover:border-gray-200")}>
+                          {isSelected && <Check size={18} />}
                         </div>
                       </div>
                     </button>
@@ -490,128 +520,188 @@ ${window.location.origin}/p/${finalSlug}`;
       )}
 
       {step === 4 && result && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="text-green-500" size={40} />
-            </div>
-            <h2 className="text-2xl font-bold">Cotação Finalizada!</h2>
-            <p className="text-gray-500 text-sm">Confira os detalhes da proteção abaixo.</p>
-          </div>
-
-          <div className="card divide-y divide-gray-100 p-0 overflow-hidden">
-            <div className="p-6 space-y-4 text-center border-b border-gray-100">
-              <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm text-left">
-                <div><span className="text-gray-500 block text-xs">Modelo</span><strong className="text-gray-800">{vehicle.brand} {vehicle.model}</strong></div>
-                <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{vehicle.plate || '---'}</strong></div>
-                <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(vehicle.fipeValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-                <div><span className="text-gray-500 block text-xs">Taxa Administrativa</span><strong className="text-gray-800">R$ 13,50</strong></div>
-                <div><span className="text-gray-500 block text-xs">Adesão</span><strong className="text-gray-800">R$ 200,00</strong></div>
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto">
+          {/* 1. DADOS DO VEÍCULO */}
+          <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 border-b border-gray-50 pb-4">1. Dados do Veículo</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Modelo</p>
+                <strong className="text-gray-800 text-lg leading-tight block">{vehicle.brand} {vehicle.model}</strong>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Placa</p>
+                <strong className="text-gray-800 text-lg block">{vehicle.plate || '---'}</strong>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Valor FIPE</p>
+                <strong className="text-gray-800 text-lg block">R$ {result.fipeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
               </div>
             </div>
+          </section>
 
-            <div className="p-8 bg-secondary text-white text-center relative overflow-hidden">
-              <p className="text-gray-400 text-xs font-bold uppercase tracking-[0.2em] mb-2">Mensalidade Total</p>
-              <h3 className="text-5xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-[50px] rounded-full -mr-16 -mt-16"></div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-2">
-                  <CheckCircle2 size={14} /> 1. Inclusos no Plano (Padrão)
-                </h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {[
-                    'Proteção contra Roubo e Furto',
-                    'Proteção contra Colisão e Incêndio',
-                    'Assistência 24h em todo Brasil',
-                    'Cobertura para terceiros até R$ 200.000,00',
-                    `${result.glassPercentage}% de proteção para retrovisor, para-brisa e faróis`,
-                    'Sem perfil de condutor'
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50/50 p-2 rounded-lg border border-gray-100">
-                      <Check size={14} className="text-green-500" /> {item}
-                    </div>
-                  ))}
-                </div>
+          {/* 2. VALOR DA MENSALIDADE (DESTAQUE PRINCIPAL) */}
+          <section className="bg-secondary rounded-[2.5rem] p-12 text-center text-white shadow-2xl shadow-secondary/30 relative overflow-hidden">
+            <div className="relative z-10">
+              <p className="text-gray-400 text-xs font-black uppercase tracking-[0.4em] mb-4">Total da Mensalidade</p>
+              <h2 className="text-7xl font-black mb-4">
+                <span className="text-3xl font-medium mr-2">R$</span>
+                {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </h2>
+              <div className="flex items-center justify-center gap-2 text-primary text-sm font-bold bg-white/5 py-2 px-4 rounded-full w-fit mx-auto">
+                <ShieldCheck size={16} /> Proteção Ativa 24h
               </div>
+            </div>
+            {/* Glossy effects */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 blur-[80px] rounded-full -ml-24 -mb-24"></div>
+          </section>
 
-              {(result.trackerValue > 0 || result.boletoValue > 0) && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
-                    <ShieldCheck size={14} /> 2. Itens Obrigatórios
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {result.trackerValue > 0 && (
-                      <div className="flex justify-between items-center text-sm font-bold text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
-                        <span>✔ Rastreador</span>
-                        <span className="text-secondary">R$ {result.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center text-sm font-bold text-gray-700 bg-blue-50 p-3 rounded-xl border border-blue-100">
-                      <span>✔ Taxa administrativa</span>
-                      <span className="text-secondary">R$ {result.boletoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
-                </div>
+          {/* 3. COMO CHEGAMOS NESSE VALOR */}
+          <section className="bg-gray-50 rounded-[2rem] p-8 border border-gray-200/50">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6 text-center">3. Resumo do Cálculo</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Base FIPE × {result.fipePercentage > 0 ? (result.fipePercentage * 100).toFixed(2) + '%' : 'Valor Fixo'}</span>
+                <span className="font-bold text-gray-800">R$ {result.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Taxa Administrativa</span>
+                <span className="font-bold text-gray-800">R$ 13,50</span>
+              </div>
+              {result.trackerValue > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Rastreador Monitorado</span>
+                  <span className="font-bold text-gray-800">R$ {result.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
               )}
-
               {result.optionalAddonsValue > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-orange-600 uppercase tracking-wider flex items-center gap-2">
-                    <Plus size={14} /> 3. Opcionais Selecionados
-                  </h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    {selectedAddons.filter(a => {
-                      const n = a.name.toLowerCase();
-                      return n !== 'boleto' && n !== 'rastreador' && n !== 'taxa administrativa';
-                    }).map(a => (
-                      <div key={a.id} className="flex justify-between items-center text-sm text-gray-600 bg-orange-50/30 p-2 rounded-lg border border-orange-100/50">
-                        <span>+ {a.name}</span>
-                        <span className="font-bold">R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Serviços Adicionais</span>
+                  <span className="font-bold text-gray-800">R$ {result.optionalAddonsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-
-              <div className="p-6 bg-gray-50/80 space-y-4 rounded-2xl border border-gray-100">
-                <h4 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">Resumo da Mensalidade</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm"><span>Valor FIPE</span><span className="font-medium">R$ {result.fipeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                  <div className="flex justify-between text-sm"><span>Categoria</span><span className="font-medium">{result.categoryType} ({result.categoryName})</span></div>
-                  {result.fipePercentage > 0 && <div className="flex justify-between text-sm"><span>Percentual</span><span className="font-medium">{(result.fipePercentage * 100).toFixed(2)}%</span></div>}
-                  <div className="flex justify-between text-sm"><span>Base</span><span className="font-medium">R$ {result.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                  <div className="flex justify-between text-sm"><span>Taxa Adm.</span><span className="font-medium">R$ {result.boletoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                  {result.trackerValue > 0 && <div className="flex justify-between text-sm"><span>Rastreador</span><span className="font-medium">R$ {result.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
-                  {result.glassValue > 0 && <div className="flex justify-between text-sm"><span>Vidros (Extra)</span><span className="font-medium">R$ {result.glassValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
-                  <div className="flex justify-between text-sm"><span>Vidros (%)</span><span className="font-medium">{result.glassPercentage}%</span></div>
-                  {result.optionalAddonsValue > 0 && <div className="flex justify-between text-sm"><span>Opcionais</span><span className="font-medium">R$ {result.optionalAddonsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
-                </div>
-                <div className="pt-4 border-t border-dashed border-gray-300 space-y-2">
-                  <div className="flex justify-between text-xs"><span className="text-gray-400 uppercase">Participação</span><span className="font-bold">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                  <div className="flex justify-between text-xs"><span className="text-gray-400 uppercase">Adesão</span><span className="font-bold text-gray-700">R$ 200,00</span></div>
-                </div>
+              <div className="pt-4 border-t border-gray-200 mt-4 flex justify-between items-center">
+                <span className="font-black text-gray-900 uppercase tracking-widest text-xs">Total Mensal</span>
+                <span className="font-black text-2xl text-secondary">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="flex flex-col gap-3 mt-6">
+          {/* 4. COBERTURA DO PLANO */}
+          <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+              <ShieldCheck size={18} /> 4. Cobertura do Plano
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                'Roubo e furto',
+                'Colisão',
+                'Granizo',
+                'Incêndio',
+                'Indenização até 100% FIPE',
+                'Terceiros até R$ 200.000',
+                `${result.glassPercentage}% para vidros`,
+                'Proteção para carros rebaixados'
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-2xl border border-gray-50">
+                  <div className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center"><Check size={12} strokeWidth={4} /></div>
+                  <span className="text-sm font-semibold text-gray-700">{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 5. ASSISTÊNCIA 24H */}
+          <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+            <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+              <Zap size={18} /> 5. Assistência 24h
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                'Guincho até 500km',
+                'Pane elétrica/mecânica',
+                'Pneu / combustível',
+                'Chaveiro',
+                'Táxi / Uber',
+                'Hospedagem',
+                'Auxílio funeral'
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-blue-50/30 rounded-2xl border border-blue-50">
+                  <div className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center"><Check size={12} strokeWidth={4} /></div>
+                  <span className="text-sm font-semibold text-gray-700">{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 6. ITENS INCLUSOS NO PLANO */}
+          <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6">6. Incluso no Plano</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                <span className="text-sm font-bold text-gray-700">Taxa Administrativa</span>
+                <span className="text-sm font-black text-secondary">R$ 13,50</span>
+              </div>
+              {result.trackerValue > 0 && (
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                  <span className="text-sm font-bold text-gray-700">Rastreador Monitorado</span>
+                  <span className="text-sm font-black text-secondary">R$ 50,00</span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 7. OPCIONAIS SELECIONADOS */}
+          {result.optionalAddonsValue > 0 && (
+            <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+              <h3 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-6">7. Opcionais Contratados</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {selectedAddons.filter(a => {
+                  const n = a.name.toLowerCase().trim();
+                  return n !== 'boleto' && n !== 'rastreador' && n !== 'taxa administrativa' && !n.includes('boleto');
+                }).map(a => (
+                  <div key={a.id} className="flex justify-between items-center p-4 bg-orange-50/20 rounded-2xl border border-orange-100/50">
+                    <span className="text-sm font-bold text-gray-700">+ {a.name}</span>
+                    <span className="text-sm font-black text-orange-600">R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 8. CONSULTOR RESPONSÁVEL */}
+          <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm flex items-center gap-6">
+            <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center text-primary font-black text-2xl">
+              {(localStorage.getItem('consultor_nome') || 'C')[0]}
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultor Responsável</p>
+              <h4 className="text-lg font-black text-gray-800">{localStorage.getItem('consultor_nome')}</h4>
+              <p className="text-xs text-gray-500">{localStorage.getItem('consultor_cidade')}/SC</p>
+            </div>
+          </section>
+
+          {/* 9. BOTÕES DE AÇÃO */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-12">
             {!savedSlug ? (
-              <button onClick={saveQuote} disabled={saving} className="btn-primary py-4 flex justify-center gap-2">
-                {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />} Salvar Cotação
+              <button onClick={saveQuote} disabled={saving} className="btn-primary py-5 rounded-[1.5rem] flex items-center justify-center gap-3 text-lg col-span-full shadow-xl shadow-primary/20">
+                {saving ? <Loader2 className="animate-spin" /> : <Save size={24} />} 
+                <span className="font-black uppercase tracking-widest">Gerar Proposta Oficial</span>
               </button>
             ) : (
               <>
-                <button onClick={handleCopyLink} className="btn-primary py-4 flex justify-center gap-2">
-                  <Copy size={20} /> {copied ? 'Copiado!' : 'Copiar Link'}
+                <button onClick={() => handleWhatsApp()} className="bg-green-500 hover:bg-green-600 text-white py-5 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 transition-all">
+                  <Send size={24} /> <span className="font-black uppercase tracking-widest">WhatsApp</span>
                 </button>
-                <button onClick={() => handleWhatsApp()} className="btn-secondary py-3 flex justify-center gap-2 bg-green-50 border-green-200 text-green-700">
-                  <Send size={18} /> WhatsApp
+                <button onClick={handleCopyLink} className="btn-primary py-5 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl shadow-primary/20 transition-all">
+                  <Copy size={24} /> <span className="font-black uppercase tracking-widest">{copied ? 'Copiado!' : 'Copiar Link'}</span>
                 </button>
-                <button onClick={() => navigate('/dashboard')} className="btn-secondary py-3 flex justify-center gap-2">
-                  <ArrowLeft size={18} /> Voltar
+                <button onClick={() => handlePrint()} className="bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 hover:bg-gray-50 transition-all">
+                  <Printer size={20} /> <span className="font-bold uppercase tracking-widest text-xs">Imprimir</span>
+                </button>
+                <button onClick={() => navigate('/dashboard')} className="bg-white border-2 border-gray-100 text-gray-400 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 hover:bg-gray-50 transition-all">
+                  <ArrowLeft size={20} /> <span className="font-bold uppercase tracking-widest text-xs">Painel</span>
                 </button>
               </>
             )}
@@ -621,9 +711,19 @@ ${window.location.origin}/p/${finalSlug}`;
 
       {/* Navigation */}
       {step < 4 && (
-        <div className="mt-10 flex justify-between">
-          {step > 1 && <button onClick={handlePrevStep} className="btn-secondary flex items-center gap-2"><ChevronLeft size={20} /> Voltar</button>}
-          <button onClick={handleNextStep} disabled={(step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.category || modelStatus === 'restricted'))} className="btn-primary flex items-center gap-2 ml-auto">Próximo <ChevronRight size={20} /></button>
+        <div className="mt-12 flex justify-between items-center px-4">
+          {step > 1 ? (
+            <button onClick={handlePrevStep} className="flex items-center gap-2 text-gray-400 font-bold hover:text-gray-600 transition-colors">
+              <ChevronLeft size={24} /> Voltar
+            </button>
+          ) : <div />}
+          <button 
+            onClick={handleNextStep} 
+            disabled={(step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.category || modelStatus === 'restricted'))} 
+            className="bg-primary text-white px-10 py-5 rounded-3xl font-black uppercase tracking-[0.15em] flex items-center gap-3 shadow-xl shadow-primary/20 disabled:opacity-30 disabled:shadow-none transition-all active:scale-95"
+          >
+            Próximo <ChevronRight size={24} />
+          </button>
         </div>
       )}
     </div>

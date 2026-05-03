@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Quote, QuoteAddon, PricingRule } from '../types';
-import { ShieldCheck, Car, CheckCircle2, MessageSquare, Plus } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, MessageSquare, Zap, Printer, Copy, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { calculateQuote } from '../lib/calculator';
 import type { CalculationResult } from '../lib/calculator';
@@ -13,6 +13,7 @@ const PublicQuote = () => {
   const [addons, setAddons] = useState<QuoteAddon[]>([]);
   const [loading, setLoading] = useState(true);
   const [calcResult, setCalcResult] = useState<CalculationResult | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchQuote();
@@ -62,8 +63,11 @@ const PublicQuote = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="text-xs font-black text-primary uppercase tracking-widest">Preparando sua cotação...</p>
+        </div>
       </div>
     );
   }
@@ -74,193 +78,227 @@ const PublicQuote = () => {
         <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
           <ShieldCheck className="text-primary" size={40} />
         </div>
-        <h1 className="text-2xl font-bold mb-2">Cotação não encontrada</h1>
+        <h1 className="text-2xl font-black mb-2">Cotação expirada</h1>
         <p className="text-gray-500 mb-6">O link pode estar expirado ou incorreto.</p>
-        <button onClick={() => window.location.href = '/'} className="btn-primary">Ir para o início</button>
+        <button onClick={() => window.location.href = 'https://autoexcelencia.com.br'} className="btn-primary">Acessar site oficial</button>
       </div>
     );
   }
 
   const handleWhatsApp = () => {
-    const message = `Olá! Quero seguir com a minha associação da Auto Excelência.
+    const message = `Olá! Recebi minha cotação da Auto Excelência e gostaria de seguir com a contratação.
 
-*🚗 DADOS DA COTAÇÃO*
+*🚗 DADOS DO VEÍCULO*
 Modelo: ${quote.brand} ${quote.model}
 Placa: ${quote.plate || '---'}
-Código FIPE: ${quote.fipe_code || '---'}
 Valor FIPE: R$ ${Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-Participação Evento: R$ ${Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-Adesão/Vistoria: R$ ${Number(quote.inspection_fee || 200).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}
 
-*🎯 TOTAL DA MENSALIDADE: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
+*💰 TOTAL DA MENSALIDADE: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
 
-✔️ Proteção Completa
-✔️ Assistência 24h
-Link oficial: ${window.location.href}`;
+Confira os detalhes no link oficial: ${window.location.href}`;
 
     window.open(`https://wa.me/55${quote.client_whatsapp?.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20">
-      <header className="bg-white border-b border-gray-200 py-6 sticky top-0 z-50">
-        <div className="max-w-xl mx-auto px-6 flex items-center justify-between">
+    <div className="min-h-screen bg-[#fcfcfc] pb-24 font-sans selection:bg-primary/10">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 py-6 sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Auto Excelência" className="h-10 sm:h-12 w-auto max-w-[160px] sm:max-w-[200px] object-contain" />
+            <img src="/logo.png" alt="Auto Excelência" className="h-10 w-auto object-contain" />
           </div>
-          <button onClick={handleWhatsApp} className="btn-primary text-xs py-2 px-4 flex items-center gap-2">
+          <button onClick={handleWhatsApp} className="bg-green-500 hover:bg-green-600 text-white text-[10px] font-black uppercase tracking-widest py-2.5 px-5 rounded-full flex items-center gap-2 transition-all">
             <MessageSquare size={14} /> Falar com Consultor
           </button>
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-4 py-8 space-y-6">
-        <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
-            <div className="bg-blue-100 text-blue-600 p-2 rounded-lg"><Car size={20} /></div>
-            <h2 className="text-lg font-bold text-gray-800">Dados da Cotação</h2>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm">
-              <div><span className="text-gray-500 block text-xs">Modelo</span><strong className="text-gray-800">{quote.brand} {quote.model}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{quote.plate || '---'}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Código FIPE</span><strong className="text-gray-800">{quote.fipe_code || '---'}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Participação de evento</span><strong className="text-gray-800">R$ {Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 200).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Taxa Administrativa</span><strong className="text-gray-800">R$ 13,50</strong></div>
-              <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
+      <main className="max-w-2xl mx-auto px-6 py-10 space-y-10">
+        {/* 1. DADOS DO VEÍCULO */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 border-b border-gray-50 pb-4">1. Dados do Veículo</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Modelo</p>
+              <strong className="text-gray-800 text-lg leading-tight block">{quote.brand} {quote.model}</strong>
             </div>
-
-            <div className="mt-6 bg-secondary text-white rounded-2xl p-6 text-center shadow-xl shadow-secondary/20 relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">Total da mensalidade</p>
-                <h3 className="text-5xl font-black text-white">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-              </div>
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary rounded-full blur-[60px] opacity-40"></div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Placa</p>
+              <strong className="text-gray-800 text-lg block">{quote.plate || '---'}</strong>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Valor FIPE</p>
+              <strong className="text-gray-800 text-lg block">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
             </div>
           </div>
         </section>
 
-        <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-green-50 border-b border-green-100 p-5 flex items-center gap-3">
-            <div className="bg-green-100 text-green-600 p-2 rounded-lg"><CheckCircle2 size={20} /></div>
-            <h2 className="text-lg font-bold text-gray-800">1. Proteção Inclusa (Padrão)</h2>
+        {/* 2. VALOR DA MENSALIDADE */}
+        <section className="bg-secondary rounded-[2.5rem] p-12 text-center text-white shadow-2xl shadow-secondary/30 relative overflow-hidden">
+          <div className="relative z-10">
+            <p className="text-gray-400 text-xs font-black uppercase tracking-[0.4em] mb-4">Total da Mensalidade</p>
+            <h2 className="text-7xl font-black mb-4">
+              <span className="text-3xl font-medium mr-2">R$</span>
+              {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </h2>
+            <div className="flex items-center justify-center gap-2 text-primary text-sm font-bold bg-white/5 py-2 px-4 rounded-full w-fit mx-auto">
+              <ShieldCheck size={16} /> Proteção Garantida
+            </div>
           </div>
-          <div className="p-6">
-            <ul className="space-y-3 text-sm text-gray-700">
-              {[
-                'Proteção contra Roubo e Furto',
-                'Proteção contra Colisão e Incêndio',
-                'Assistência 24h em todo Brasil',
-                'Cobertura para terceiros até R$ 200.000,00',
-                `${calcResult.glassPercentage}% de proteção para retrovisor, para-brisa e faróis`,
-                'Sem perfil de condutor',
-                'Indenização até 100% da FIPE',
-                'Sem limite de quilometragem guincho (eventos)'
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-green-500" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full -mr-32 -mt-32"></div>
         </section>
 
-        {(calcResult.trackerValue > 0 || calcResult.boletoValue > 0) && (
-          <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-blue-50 border-b border-blue-100 p-5 flex items-center gap-3">
-              <div className="bg-blue-100 text-blue-600 p-2 rounded-lg"><ShieldCheck size={20} /></div>
-              <h2 className="text-lg font-bold text-gray-800">2. Itens Obrigatórios</h2>
+        {/* 3. COMO CHEGAMOS NESSE VALOR */}
+        <section className="bg-gray-50 rounded-[2rem] p-8 border border-gray-200/50">
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6 text-center">3. Resumo do Cálculo</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Base FIPE ({calcResult.categoryType})</span>
+              <span className="font-bold text-gray-800">R$ {calcResult.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="p-6 space-y-3">
-              {calcResult.trackerValue > 0 && (
-                <div className="flex justify-between items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 size={20} className="text-blue-600" />
-                    <div><p className="font-bold text-gray-800">Rastreador</p></div>
-                  </div>
-                  <span className="font-bold text-secondary">R$ {calcResult.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 size={20} className="text-blue-600" />
-                  <div><p className="font-bold text-gray-800">Taxa Administrativa</p></div>
-                </div>
-                <span className="font-bold text-secondary">R$ {calcResult.boletoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Taxa Administrativa</span>
+              <span className="font-bold text-gray-800">R$ 13,50</span>
+            </div>
+            {calcResult.trackerValue > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Rastreador Monitorado</span>
+                <span className="font-bold text-gray-800">R$ {calcResult.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
-            </div>
-          </section>
-        )}
-
-        {calcResult.optionalAddonsValue > 0 && (
-          <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-orange-50 border-b border-orange-100 p-5 flex items-center gap-3">
-              <div className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Plus size={20} /></div>
-              <h2 className="text-lg font-bold text-gray-800">3. Opcionais Contratados</h2>
-            </div>
-            <div className="p-6 space-y-3">
-              {addons.filter(a => {
-                const n = a.name.toLowerCase();
-                return n !== 'boleto' && n !== 'rastreador' && n !== 'taxa administrativa';
-              }).map(addon => (
-                <div key={addon.id} className="flex justify-between items-center p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                  <div className="flex items-center gap-3">
-                    <Plus size={18} className="text-orange-500" />
-                    <span className="font-bold text-gray-800">{addon.name}</span>
-                  </div>
-                  <span className="font-bold text-orange-600">+ R$ {Number(addon.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section className="bg-gray-800 rounded-3xl shadow-2xl overflow-hidden text-white">
-          <div className="p-8 space-y-6">
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] text-center">Resumo da Mensalidade</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm text-gray-300"><span>Valor FIPE</span><span className="font-bold">R$ {calcResult.fipeValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              <div className="flex justify-between text-sm text-gray-300"><span>Categoria</span><span className="font-bold">{calcResult.categoryType} ({calcResult.categoryName})</span></div>
-              {calcResult.fipePercentage > 0 && <div className="flex justify-between text-sm text-gray-300"><span>Percentual</span><span className="font-bold">{(calcResult.fipePercentage * 100).toFixed(2)}%</span></div>}
-              <div className="flex justify-between text-sm text-gray-300"><span>Base</span><span className="font-bold">R$ {calcResult.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              <div className="flex justify-between text-sm text-gray-300"><span>Taxa Adm.</span><span className="font-bold">R$ {calcResult.boletoValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              {calcResult.trackerValue > 0 && <div className="flex justify-between text-sm text-gray-300"><span>Rastreador</span><span className="font-bold">R$ {calcResult.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
-              {calcResult.glassValue > 0 && <div className="flex justify-between text-sm text-gray-300"><span>Vidros (Extra)</span><span className="font-bold">R$ {calcResult.glassValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
-              <div className="flex justify-between text-sm text-gray-300"><span>Vidros (%)</span><span className="font-bold">{calcResult.glassPercentage}%</span></div>
-              {calcResult.optionalAddonsValue > 0 && <div className="flex justify-between text-sm text-gray-300"><span>Opcionais</span><span className="font-bold">R$ {calcResult.optionalAddonsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>}
-            </div>
-
-            <div className="pt-6 border-t border-gray-700 flex justify-between items-center">
-              <div>
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Valor Total</p>
-                <p className="text-3xl font-black">R$ {calcResult.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            )}
+            {calcResult.optionalAddonsValue > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Serviços Opcionais</span>
+                <span className="font-bold text-gray-800">R$ {calcResult.optionalAddonsValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
-              <button onClick={handleWhatsApp} className="bg-primary hover:bg-red-600 text-white font-black px-6 py-3 rounded-2xl transition-all shadow-xl shadow-primary/20">
-                CONTRATAR
-              </button>
+            )}
+            <div className="pt-4 border-t border-gray-200 mt-4 flex justify-between items-center">
+              <span className="font-black text-gray-900 uppercase tracking-widest text-xs">Total Mensal</span>
+              <span className="font-black text-2xl text-secondary">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         </section>
 
-        <div className="pt-4 space-y-4 text-center">
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 space-y-4">
-            <p className="text-sm text-gray-500 font-medium italic">"Garantimos o melhor atendimento e a proteção mais completa para você rodar tranquilo."</p>
-            {(quote as any).consultant_name && (
-              <div className="flex items-center justify-center gap-2 text-left">
-                <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center text-primary font-bold">{(quote as any).consultant_name?.[0]}</div>
-                <div>
-                  <p className="text-sm font-bold text-gray-800">{(quote as any).consultant_name}</p>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">Consultor Especialista</p>
-                </div>
+        {/* 4. COBERTURA DO PLANO */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+            <ShieldCheck size={18} /> 4. Cobertura do Plano
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              'Roubo e furto',
+              'Colisão',
+              'Granizo',
+              'Incêndio',
+              'Indenização até 100% FIPE',
+              'Terceiros até R$ 200.000',
+              `${calcResult.glassPercentage}% para vidros`,
+              'Proteção para carros rebaixados'
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-2xl border border-gray-50">
+                <div className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center"><CheckCircle2 size={12} /></div>
+                <span className="text-sm font-semibold text-gray-700">{item}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 5. ASSISTÊNCIA 24H */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+          <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+            <Zap size={18} /> 5. Assistência 24h
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              'Guincho até 500km',
+              'Pane elétrica/mecânica',
+              'Pneu / combustível',
+              'Chaveiro',
+              'Táxi / Uber',
+              'Hospedagem',
+              'Auxílio funeral'
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 bg-blue-50/30 rounded-2xl border border-blue-50">
+                <div className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center"><CheckCircle2 size={12} /></div>
+                <span className="text-sm font-semibold text-gray-700">{item}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 6. ITENS INCLUSOS */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6">6. Incluso no Plano</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+              <span className="text-sm font-bold text-gray-700">Taxa Administrativa</span>
+              <span className="text-sm font-black text-secondary">R$ 13,50</span>
+            </div>
+            {calcResult.trackerValue > 0 && (
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                <span className="text-sm font-bold text-gray-700">Rastreador Monitorado</span>
+                <span className="text-sm font-black text-secondary">R$ 50,00</span>
               </div>
             )}
           </div>
-          <p className="text-xs text-gray-400">
-            Cotação válida por 7 dias a partir de {format(new Date(quote.created_at), 'dd/MM/yyyy')}.
+        </section>
+
+        {/* 7. OPCIONAIS */}
+        {calcResult.optionalAddonsValue > 0 && (
+          <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm">
+            <h3 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-6">7. Opcionais Contratados</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {addons.filter(a => {
+                const n = a.name.toLowerCase().trim();
+                return n !== 'boleto' && n !== 'rastreador' && n !== 'taxa administrativa' && !n.includes('boleto');
+              }).map(a => (
+                <div key={a.id} className="flex justify-between items-center p-4 bg-orange-50/20 rounded-2xl border border-orange-100/50">
+                  <span className="text-sm font-bold text-gray-700">+ {a.name}</span>
+                  <span className="text-sm font-black text-orange-600">R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 8. CONSULTOR RESPONSÁVEL */}
+        <section className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm flex items-center gap-6">
+          <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center text-primary font-black text-2xl">
+            {(quote.consultant_name || 'C')[0]}
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultor Especialista</p>
+            <h4 className="text-lg font-black text-gray-800">{quote.consultant_name}</h4>
+            <p className="text-xs text-gray-500">{quote.consultant_city}/SC</p>
+          </div>
+        </section>
+
+        {/* 9. BOTÕES DE AÇÃO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button onClick={handleWhatsApp} className="bg-green-500 hover:bg-green-600 text-white py-5 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 transition-all font-black uppercase tracking-widest">
+            <Send size={24} /> Contratar Agora
+          </button>
+          <button onClick={handleCopyLink} className="btn-primary py-5 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl shadow-primary/20 transition-all font-black uppercase tracking-widest">
+            <Copy size={24} /> {copied ? 'Copiado!' : 'Copiar Link'}
+          </button>
+          <button onClick={handlePrint} className="bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 hover:bg-gray-50 transition-all font-bold uppercase tracking-widest text-xs col-span-full">
+            <Printer size={20} /> Imprimir Proposta
+          </button>
+        </div>
+
+        <div className="text-center pt-8">
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+            Cotação gerada em {format(new Date(quote.created_at), 'dd/MM/yyyy')} • Válida por 7 dias
           </p>
         </div>
       </main>

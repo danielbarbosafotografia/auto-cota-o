@@ -67,6 +67,8 @@ export type Quote = {
   inspection_fee: number;
   status: string;
   public_slug: string;
+  consultant_name?: string;
+  consultant_city?: string;
   created_at: string;
 };
 
