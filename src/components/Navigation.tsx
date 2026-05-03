@@ -38,9 +38,9 @@ export const Sidebar = () => {
     <div className="hidden md:flex flex-col w-64 bg-secondary text-white h-screen sticky top-0 p-4">
       <div className="flex items-center gap-3 px-2 mb-10 mt-4">
         <img 
-          src="/logo.png" 
+          src="/logo-sidebar-clean.png?v=3" 
           alt="Auto Excelência" 
-          className="w-44 h-auto object-contain" 
+          className="w-48 h-auto object-contain" 
         />
       </div>
 
