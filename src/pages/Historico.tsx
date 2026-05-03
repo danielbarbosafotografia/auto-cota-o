@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Quote } from '../types';
-import { FileText, Search, ExternalLink, Filter } from 'lucide-react';
+import { FileText, Search, ExternalLink, Filter, Trash2, CheckSquare, Square } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -20,21 +20,25 @@ const Historico = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Initialize filter with the logged in consultant, or 'Todos' if none
   const [selectedConsultant, setSelectedConsultant] = useState(
     localStorage.getItem('consultor_nome') || 'Todos'
   );
 
+  const fetchQuotes = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('quotes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setQuotes(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchQuotes = async () => {
-      const { data } = await supabase
-        .from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (data) setQuotes(data);
-      setLoading(false);
-    };
     fetchQuotes();
   }, []);
 
@@ -49,6 +53,51 @@ const Historico = () => {
 
     return matchesSearch && matchesConsultant;
   });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredQuotes.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredQuotes.map(q => q.id));
+    }
+  };
+
+  const toggleSelect = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    
+    const confirmMsg = selectedIds.length === 1 
+      ? 'Tem certeza que deseja excluir esta cotação?' 
+      : `Tem certeza que deseja excluir as ${selectedIds.length} cotações selecionadas?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) throw error;
+
+      setQuotes(prev => prev.filter(q => !selectedIds.includes(q.id)));
+      setSelectedIds([]);
+      alert('Excluído com sucesso!');
+    } catch (error) {
+      console.error('Error deleting:', error);
+      alert('Erro ao excluir. Verifique as permissões.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -82,14 +131,54 @@ const Historico = () => {
         </div>
       </div>
 
+      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={toggleSelectAll}
+            className="text-gray-400 hover:text-primary transition-colors"
+          >
+            {selectedIds.length === filteredQuotes.length && filteredQuotes.length > 0 ? (
+              <CheckSquare className="text-primary" size={20} />
+            ) : (
+              <Square size={20} />
+            )}
+          </button>
+          <span className="text-sm font-medium text-gray-600">
+            {selectedIds.length} selecionado(s)
+          </span>
+        </div>
+        
+        {selectedIds.length > 0 && (
+          <button
+            onClick={handleDeleteSelected}
+            disabled={isDeleting}
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all text-sm font-bold disabled:opacity-50"
+          >
+            <Trash2 size={18} />
+            Excluir {selectedIds.length > 1 ? 'Selecionados' : ''}
+          </button>
+        )}
+      </div>
+
       <div className="space-y-3">
         {filteredQuotes.map(quote => {
           const cName = (quote as any).consultant_name;
           const cCity = (quote as any).consultant_city;
 
           return (
-            <Link key={quote.id} to={`/p/${quote.public_slug}`} className="card hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between group gap-4">
-              <div className="flex items-center gap-4">
+            <div key={quote.id} className="relative flex items-center gap-3">
+              <button 
+                onClick={(e) => toggleSelect(e, quote.id)}
+                className="text-gray-300 hover:text-primary transition-colors flex-shrink-0"
+              >
+                {selectedIds.includes(quote.id) ? (
+                  <CheckSquare className="text-primary" size={22} />
+                ) : (
+                  <Square size={22} />
+                )}
+              </button>
+              <Link to={`/p/${quote.public_slug}`} className="flex-1 card hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between group gap-4">
+                <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors flex-shrink-0">
                   <FileText size={24} />
                 </div>
@@ -107,8 +196,9 @@ const Historico = () => {
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{quote.category_name}</p>
                 </div>
                 <ExternalLink size={20} className="text-gray-300 group-hover:text-primary flex-shrink-0" />
-              </div>
-            </Link>
+                </div>
+              </Link>
+            </div>
           );
         })}
 

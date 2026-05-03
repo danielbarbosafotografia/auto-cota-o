@@ -163,7 +163,12 @@ CREATE POLICY "Admin manage all clients" ON clients FOR ALL USING (is_admin());
 CREATE POLICY "Sellers view own quotes" ON quotes FOR SELECT USING (seller_id = auth.uid());
 CREATE POLICY "Sellers manage own quotes" ON quotes FOR INSERT WITH CHECK (seller_id = auth.uid());
 CREATE POLICY "Admin manage all quotes" ON quotes FOR ALL USING (is_admin());
+CREATE POLICY "Sellers delete own quotes" ON quotes FOR DELETE USING (seller_id = auth.uid());
 CREATE POLICY "Public view quotes via slug" ON quotes FOR SELECT USING (TRUE);
+
+-- Quote Addons: Public can read, authenticated can manage
+CREATE POLICY "Public read quote_addons" ON quote_addons FOR SELECT USING (TRUE);
+CREATE POLICY "Authenticated manage quote_addons" ON quote_addons FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- Metadata (Brands, Models, Categories, Rules, Addons): Publicly readable, Admin manageable
 CREATE POLICY "Public read metadata" ON vehicle_brands FOR SELECT USING (TRUE);
