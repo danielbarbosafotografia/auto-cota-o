@@ -15,6 +15,11 @@ const CONSULTANTS = [
 const Dashboard = () => {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    localStorage.removeItem('consultor_nome');
+    localStorage.removeItem('consultor_cidade');
+  }, []);
+
   // Removido o redirecionamento automático para forçar a seleção do consultor a cada login
 
   const selectConsultant = (consultant: { name: string, city: string }) => {
