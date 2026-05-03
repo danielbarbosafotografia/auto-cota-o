@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { calculateQuote } from '../lib/calculator';
@@ -26,7 +26,6 @@ import { clsx } from 'clsx';
 
 const NovaCotacao = () => {
   const { profile } = useAuth();
-  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);

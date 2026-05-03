@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Quote, QuoteAddon, PricingRule } from '../types';
-import { ShieldCheck, Car, Calendar, CheckCircle2, MessageSquare, Plus, AlertCircle, Phone } from 'lucide-react';
+import type { Quote, QuoteAddon } from '../types';
+import { ShieldCheck, Car, CheckCircle2, MessageSquare, Plus, AlertCircle, Phone } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { clsx } from 'clsx';
 
 const PublicQuote = () => {
   const { slug } = useParams();
