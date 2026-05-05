@@ -12,8 +12,8 @@ export type CalculationResult = {
   fipeValue: number;
   fipePercentage: number;
   baseValue: number;           // FIPE * %
-  fixedAddon: number;          // 13.50 (ou 3.50 para especial)
-  glassValue: number;          // Custo vidros incluso na categoria
+  fixedAddon: number;          // taxa administrativa (13.50 ou 3.50 para especial)
+  glassValue: number;          // cobertura vidros/faróis/retrovisores inclusa na categoria
   trackerValue: number;
   leilaoSinistroValue: number;
   optionalAddonsValue: number;
@@ -22,7 +22,6 @@ export type CalculationResult = {
   categoryName: string;
   glassPercentage: number;
   categoryType: CategoryType;
-  canHaveFullGlass: boolean;
 };
 
 const detectCategoryType = (categoryName: string): CategoryType => {
@@ -48,7 +47,6 @@ export const calculateQuote = (
   let fixedAddon: number;
   let glassValue: number;
   let glassPercentage: number;
-  let canHaveFullGlass: boolean;
 
   switch (categoryType) {
     case 'NACIONAL':
@@ -56,42 +54,36 @@ export const calculateQuote = (
       fixedAddon = 13.50;
       glassValue = 0;
       glassPercentage = 60;
-      canHaveFullGlass = true;
       break;
     case 'IMPORTADO':
       fipePercentage = 0.0035;
       fixedAddon = 13.50;
       glassValue = 15.90;
       glassPercentage = 50;
-      canHaveFullGlass = false;
       break;
     case 'CAMINHONETE_NACIONAL':
       fipePercentage = 0.0025;
       fixedAddon = 13.50;
       glassValue = 19.90;
       glassPercentage = 50;
-      canHaveFullGlass = false;
       break;
     case 'CAMINHONETE_IMPORTADA':
       fipePercentage = 0.0035;
       fixedAddon = 13.50;
       glassValue = 29.90;
       glassPercentage = 50;
-      canHaveFullGlass = false;
       break;
     case 'ESPECIAL':
       fipePercentage = 0.0045;
       fixedAddon = 3.50;
       glassValue = 29.90;
       glassPercentage = 50;
-      canHaveFullGlass = false;
       break;
     default:
       fipePercentage = Number(rule.percentage_above_limit);
       fixedAddon = 13.50;
       glassValue = 0;
       glassPercentage = 50;
-      canHaveFullGlass = false;
   }
 
   const baseValue = fipeValue * fipePercentage;
@@ -136,6 +128,5 @@ export const calculateQuote = (
     categoryName,
     glassPercentage,
     categoryType,
-    canHaveFullGlass,
   };
 };

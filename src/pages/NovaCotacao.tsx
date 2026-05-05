@@ -45,6 +45,7 @@ const NovaCotacao = () => {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Form State
@@ -211,15 +212,7 @@ const NovaCotacao = () => {
 
   // Filtra addons para exibição — remove os que não fazem parte do produto
   const getVisibleAddons = () => {
-    return addons.filter(addon => {
-      if (shouldExcludeAddon(addon.name)) return false;
-      // Caminhonete e Especial não podem ter 100% de vidros
-      if (result && !result.canHaveFullGlass) {
-        const n = addon.name.toLowerCase();
-        if (n.includes('100%') || n.includes('100 %')) return false;
-      }
-      return true;
-    });
+    return addons.filter(addon => !shouldExcludeAddon(addon.name));
   };
 
   const saveQuote = async () => {
@@ -277,9 +270,18 @@ const NovaCotacao = () => {
 
       const addonsToSave: { quote_id: string; addon_id: string; name: string; price: number }[] = [];
 
-      if (selectedAddons.length > 0) {
-        selectedAddons.forEach(a => {
-          addonsToSave.push({ quote_id: quote.id, addon_id: a.id, name: a.name, price: Number(a.price) });
+      selectedAddons.forEach(a => {
+        addonsToSave.push({ quote_id: quote.id, addon_id: a.id, name: a.name, price: Number(a.price) });
+      });
+
+      // Salva rastreador se incluído pelo cálculo (por regra da categoria) e não estava em selectedAddons
+      if (result.trackerValue > 0 && !selectedAddons.some(a => a.name.toLowerCase().includes('rastreador'))) {
+        const trackerAddon = addons.find(a => a.name.toLowerCase().includes('rastreador'));
+        addonsToSave.push({
+          quote_id: quote.id,
+          addon_id: trackerAddon?.id || 'tracker-auto',
+          name: trackerAddon?.name || 'Rastreador',
+          price: result.trackerValue,
         });
       }
 
@@ -292,6 +294,7 @@ const NovaCotacao = () => {
       }
 
       setSavedSlug(slug);
+      setSaveSuccess(true);
     } catch (err) {
       console.error('Erro ao salvar cotação:', err);
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -582,8 +585,9 @@ const NovaCotacao = () => {
 
           <div className="card divide-y divide-gray-100 p-0 overflow-hidden">
             <div className="p-6 bg-secondary text-white">
-              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Total Mensal</p>
-              <h3 className="text-4xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Valor Mensal</p>
+              <h3 className="text-4xl font-black">R$ {(result.finalMonthlyValue - result.fixedAddon).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+              <p className="text-gray-400 text-xs mt-2">+ R$ {result.fixedAddon.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de taxa administrativa</p>
             </div>
 
             <div className="p-6 space-y-4">
@@ -599,14 +603,18 @@ const NovaCotacao = () => {
                 <span className="text-gray-500">Categoria</span>
                 <span className="bg-red-50 text-primary text-xs font-black px-2 py-1 rounded uppercase">{result.categoryName}</span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Cobertura terceiros</span>
+                <span className="font-bold text-secondary">Até R$ 200.000,00</span>
+              </div>
             </div>
 
             <div className="p-6 space-y-3 bg-gray-50/50">
-              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Resumo Financeiro</h4>
+              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Detalhamento</h4>
 
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Valor base</span>
-                <span className="font-medium">R$ {(result.baseValue + result.fixedAddon).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="text-gray-500">Proteção veicular</span>
+                <span className="font-medium">R$ {result.baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
 
               {result.glassValue > 0 && (
@@ -630,19 +638,15 @@ const NovaCotacao = () => {
                 </div>
               )}
 
-              {selectedAddons.filter(a => !a.name.toLowerCase().includes('rastreador')).length > 0 && (
-                <div className="pl-4 border-l-2 border-gray-100 mt-2 space-y-1">
-                  {selectedAddons.filter(a => !a.name.toLowerCase().includes('rastreador')).map(a => (
-                    <div key={a.id} className="flex justify-between text-xs text-gray-500">
-                      <span>+ {a.name}</span>
-                      <span>R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  ))}
+              {selectedAddons.filter(a => !a.name.toLowerCase().includes('rastreador')).map(a => (
+                <div key={a.id} className="flex justify-between text-sm">
+                  <span className="text-gray-500">{a.name}</span>
+                  <span className="font-medium">R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
-              )}
+              ))}
 
               <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-                <span className="text-gray-700 font-bold">Adesão/Vistoria</span>
+                <span className="text-gray-700 font-bold">Adesão / Vistoria</span>
                 <span className="font-bold">R$ 200,00</span>
               </div>
             </div>
@@ -656,10 +660,17 @@ const NovaCotacao = () => {
                 className="btn-primary flex items-center justify-center gap-2 py-4"
               >
                 {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                Salvar Cotação
+                {saving ? 'Salvando...' : 'Salvar Cotação'}
               </button>
             </div>
           ) : (
+            <>
+            {saveSuccess && (
+              <div className="flex items-center gap-3 bg-green-50 border border-green-200 text-green-800 rounded-2xl px-5 py-4 font-bold text-sm">
+                <CheckCircle2 className="text-green-500 shrink-0" size={22} />
+                Cotação salva com sucesso! Compartilhe o link abaixo.
+              </div>
+            )}
             <div className="flex flex-col gap-3 mt-6">
               <button onClick={handleCopyLink} className="btn-primary flex items-center justify-center gap-2 py-4">
                 <Copy size={20} />
@@ -685,6 +696,7 @@ const NovaCotacao = () => {
                 Imprimir
               </button>
             </div>
+            </>
           )}
         </div>
       )}

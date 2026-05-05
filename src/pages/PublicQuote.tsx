@@ -12,7 +12,6 @@ const shouldHideAddonPublic = (name: string): boolean => {
   const n = name.toLowerCase().trim();
   if (n.includes('boleto')) return true;
   if (n.includes('taxa administrativa')) return true;
-  if (n.includes('rastreador')) return true;
   if (n === 'alagamento') return true;
   if (n.includes('hospitalidade')) return true;
   if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
@@ -110,6 +109,8 @@ const PublicQuote = () => {
   const hasTracker = trackerRequired || addons.some(a => a.name.toLowerCase().includes('rastreador'));
 
   const handleWhatsApp = () => {
+    const displayValue = (Number(quote.final_monthly_value) - (calcResult?.fixedAddon ?? 13.50)).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    const taxaValue = (calcResult?.fixedAddon ?? 13.50).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     const message = `Olá! Quero seguir com a minha associação da Auto Excelência.
 
 *🚗 DADOS DA COTAÇÃO*
@@ -117,13 +118,15 @@ Modelo: ${quote.brand} ${quote.model}
 Placa: ${quote.plate || '---'}
 Código FIPE: ${quote.fipe_code || '---'}
 Valor FIPE: R$ ${Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-Valor Mensal: R$ ${Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Valor Mensal: R$ ${displayValue}
++ R$ ${taxaValue} de taxa administrativa
 Adesão/Vistoria: R$ ${Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}
 
 *🎯 TOTAL DA MENSALIDADE: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
 
-${hasTracker ? '✔️ Rastreador incluso\n' : ''}✔️ Proteção Completa
+${hasTracker ? '✔️ Rastreador incluso\n' : ''}✔️ Cobertura para terceiros até R$ 200.000,00
+✔️ Proteção Completa
 ✔️ Assistência 24h
 
 Link oficial: ${window.location.href}`;
@@ -169,7 +172,7 @@ Link oficial: ${window.location.href}`;
               <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{quote.plate || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Código FIPE</span><strong className="text-gray-800">{quote.fipe_code || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {(Number(quote.final_monthly_value) - (calcResult?.fixedAddon ?? 13.50)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
               {(quote as any).consultant_name && (
@@ -184,8 +187,11 @@ Link oficial: ${window.location.href}`;
 
             <div className="mt-6 bg-secondary text-white rounded-2xl p-6 text-center shadow-xl shadow-secondary/20 relative overflow-hidden">
               <div className="relative z-10">
-                <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">Total da mensalidade</p>
-                <h3 className="text-5xl font-black text-white">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+                <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">Valor mensal</p>
+                <h3 className="text-5xl font-black text-white">
+                  R$ {(Number(quote.final_monthly_value) - (calcResult?.fixedAddon ?? 13.50)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </h3>
+                <p className="text-gray-400 text-xs mt-2">+ R$ {(calcResult?.fixedAddon ?? 13.50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de taxa administrativa</p>
               </div>
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary rounded-full blur-[60px] opacity-40"></div>
             </div>
@@ -214,6 +220,12 @@ Link oficial: ${window.location.href}`;
                   {item}
                 </li>
               ))}
+              {hasTracker && (
+                <li className="flex items-start gap-3 bg-primary/5 rounded-xl px-3 py-2 border border-primary/20">
+                  <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-primary" />
+                  <span className="font-bold text-primary">Rastreador incluso nesta proteção</span>
+                </li>
+              )}
             </ul>
           </div>
         </section>
@@ -254,7 +266,8 @@ Link oficial: ${window.location.href}`;
             <div className="space-y-3">
               {allAddons.filter(a => !shouldHideAddonPublic(a.name)).length > 0 ? (
                 allAddons.filter(a => !shouldHideAddonPublic(a.name)).map(addon => {
-                  const isContracted = addons.some(a => a.addon_id === addon.id);
+                  const isTrackerAddon = addon.name.toLowerCase().includes('rastreador');
+                  const isContracted = addons.some(a => a.addon_id === addon.id) || (isTrackerAddon && hasTracker);
                   return (
                     <div
                       key={addon.id}
