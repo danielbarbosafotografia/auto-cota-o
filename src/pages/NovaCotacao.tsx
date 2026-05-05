@@ -33,11 +33,9 @@ const shouldExcludeAddon = (name: string): boolean => {
   if (n.includes('hospitalidade')) return true;
   if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
   if (n.includes('guincho') && n.includes('1000')) return true;
-  if (n.includes('terceiros') && n.includes('3000')) return true;
-  if (n.includes('vidros') && n.includes('importad')) return true;
-  if (n.includes('vidros') && n.includes('especial')) return true;
-  if (n.includes('vidros') && n.includes('caminhonete')) return true;
-  if ((n.includes('100%') || n.includes('100 %')) && n.includes('vidros')) return true;
+  if (n.includes('terceiros') && (n.includes('3000') || n.includes('300'))) return true;
+  // Vidros, farol, retrovisor e lanterna são embutidos no cálculo por categoria
+  if (n.includes('vidro') || n.includes('farol') || n.includes('retrovisor') || n.includes('lanterna')) return true;
   return false;
 };
 
@@ -607,13 +605,8 @@ const NovaCotacao = () => {
               <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Resumo Financeiro</h4>
 
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Valor Base (FIPE × {(result.fipePercentage * 100).toFixed(2)}%)</span>
-                <span className="font-medium">R$ {result.baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Taxa fixa</span>
-                <span className="font-medium">R$ {result.fixedAddon.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="text-gray-500">Valor base</span>
+                <span className="font-medium">R$ {(result.baseValue + result.fixedAddon).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
 
               {result.glassValue > 0 && (
@@ -649,10 +642,6 @@ const NovaCotacao = () => {
               )}
 
               <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-                <span className="text-gray-700 font-bold">Participação Evento</span>
-                <span className="font-bold text-primary">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between text-sm">
                 <span className="text-gray-700 font-bold">Adesão/Vistoria</span>
                 <span className="font-bold">R$ 200,00</span>
               </div>

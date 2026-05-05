@@ -10,18 +10,16 @@ import type { CalculationResult } from '../lib/calculator';
 // Addons que não devem aparecer na cotação pública
 const shouldHideAddonPublic = (name: string): boolean => {
   const n = name.toLowerCase().trim();
-  if (n === 'boleto' || n.includes('boleto')) return true;
-  if (n === 'taxa administrativa') return true;
-  if (n === 'rastreador' || n.includes('rastreador')) return true;
-  if (n.includes('vidros') && n.includes('importad')) return true;
-  if (n.includes('vidros') && n.includes('especial')) return true;
-  if (n.includes('vidros') && n.includes('caminhonete')) return true;
-  if ((n.includes('100%') || n.includes('100 %')) && n.includes('vidros')) return true;
+  if (n.includes('boleto')) return true;
+  if (n.includes('taxa administrativa')) return true;
+  if (n.includes('rastreador')) return true;
   if (n === 'alagamento') return true;
   if (n.includes('hospitalidade')) return true;
   if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
   if (n.includes('guincho') && n.includes('1000')) return true;
-  if (n.includes('terceiros') && n.includes('3000')) return true;
+  if (n.includes('terceiros') && (n.includes('3000') || n.includes('300'))) return true;
+  // Vidros/farol/retrovisor/lanterna são embutidos no cálculo — não aparecem como opcional
+  if (n.includes('vidro') || n.includes('farol') || n.includes('retrovisor') || n.includes('lanterna')) return true;
   return false;
 };
 
@@ -120,7 +118,6 @@ Placa: ${quote.plate || '---'}
 Código FIPE: ${quote.fipe_code || '---'}
 Valor FIPE: R$ ${Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 Valor Mensal: R$ ${Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-Participação Evento: R$ ${Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 Adesão/Vistoria: R$ ${Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}
 
@@ -173,7 +170,6 @@ Link oficial: ${window.location.href}`;
               <div><span className="text-gray-500 block text-xs">Código FIPE</span><strong className="text-gray-800">{quote.fipe_code || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Participação de evento</span><strong className="text-gray-800">R$ {Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
               {(quote as any).consultant_name && (
