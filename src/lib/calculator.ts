@@ -1,111 +1,141 @@
 import type { PricingRule, Addon } from '../types';
 
+export type CategoryType =
+  | 'NACIONAL'
+  | 'IMPORTADO'
+  | 'CAMINHONETE_NACIONAL'
+  | 'CAMINHONETE_IMPORTADA'
+  | 'ESPECIAL'
+  | 'OUTROS';
+
 export type CalculationResult = {
   fipeValue: number;
   fipePercentage: number;
-  fipeComponentValue: number; // The "Base calculada" part (FIPE * % or fixed base)
-  fixedBaseValue: number;     // Any other fixed part if needed
-  boletoValue: number;        // Always 13.50
-  trackerValue: number;       // 50.00 if mandatory or selected
-  glassValue: number;         // 15.90 specifically for Importado <= 30k
+  baseValue: number;           // FIPE * %
+  fixedAddon: number;          // 13.50 (ou 3.50 para especial)
+  glassValue: number;          // Custo vidros incluso na categoria
+  trackerValue: number;
+  leilaoSinistroValue: number;
   optionalAddonsValue: number;
   finalMonthlyValue: number;
   participationValue: number;
   categoryName: string;
   glassPercentage: number;
-  categoryType: 'NACIONAL' | 'IMPORTADO' | 'ESPECIAL' | 'OUTROS';
+  categoryType: CategoryType;
+  canHaveFullGlass: boolean;
+};
+
+const detectCategoryType = (categoryName: string): CategoryType => {
+  const cat = categoryName.toUpperCase();
+  if (cat.includes('ESPECIAL')) return 'ESPECIAL';
+  if (cat.includes('CAMINHONETE') && cat.includes('IMPORTAD')) return 'CAMINHONETE_IMPORTADA';
+  if (cat.includes('CAMINHONETE')) return 'CAMINHONETE_NACIONAL';
+  if (cat.includes('IMPORTAD')) return 'IMPORTADO';
+  if (cat.includes('NACIONAL')) return 'NACIONAL';
+  return 'OUTROS';
 };
 
 export const calculateQuote = (
   fipeValue: number,
   rule: PricingRule,
   selectedAddons: Addon[],
-  categoryName: string
+  categoryName: string,
+  hasLeilaoSinistro = false
 ): CalculationResult => {
-  const cat = categoryName.toUpperCase();
-  let categoryType: 'NACIONAL' | 'IMPORTADO' | 'ESPECIAL' | 'OUTROS' = 'OUTROS';
-  
-  if (cat.includes('NACIONAL') && !cat.includes('IMPORTAD')) categoryType = 'NACIONAL';
-  else if (cat.includes('IMPORTAD')) categoryType = 'IMPORTADO';
-  else if (cat.includes('ESPECIAL')) categoryType = 'ESPECIAL';
+  const categoryType = detectCategoryType(categoryName);
 
-  let fipePercentage = Number(rule.percentage_above_limit);
-  let fipeComponentValue = 0;
-  let glassValue = 0;
-  let glassPercentage = 60; // Default for Nacional
-  const boletoValue = 13.50;
+  let fipePercentage: number;
+  let fixedAddon: number;
+  let glassValue: number;
+  let glassPercentage: number;
+  let canHaveFullGlass: boolean;
 
-  if (categoryType === 'NACIONAL') {
-    if (fipeValue > 30000) {
+  switch (categoryType) {
+    case 'NACIONAL':
       fipePercentage = 0.0025;
-      fipeComponentValue = fipeValue * fipePercentage;
-    } else {
-      fipePercentage = 0;
-      fipeComponentValue = 75.00; // 88.50 - 13.50
-    }
-    glassPercentage = 60;
-  } else if (categoryType === 'IMPORTADO') {
-    if (fipeValue > 30000) {
+      fixedAddon = 13.50;
+      glassValue = 0;
+      glassPercentage = 60;
+      canHaveFullGlass = true;
+      break;
+    case 'IMPORTADO':
       fipePercentage = 0.0035;
-      fipeComponentValue = fipeValue * fipePercentage;
-    } else {
-      fipePercentage = 0;
-      fipeComponentValue = 105.00; // Part of 134.40
-      glassValue = 15.90; // Part of 134.40
-    }
-    glassPercentage = 50;
-  } else {
-    // Especial or others use the rule percentage
-    fipeComponentValue = fipeValue * fipePercentage;
-    glassPercentage = 50;
+      fixedAddon = 13.50;
+      glassValue = 15.90;
+      glassPercentage = 50;
+      canHaveFullGlass = false;
+      break;
+    case 'CAMINHONETE_NACIONAL':
+      fipePercentage = 0.0025;
+      fixedAddon = 13.50;
+      glassValue = 19.90;
+      glassPercentage = 50;
+      canHaveFullGlass = false;
+      break;
+    case 'CAMINHONETE_IMPORTADA':
+      fipePercentage = 0.0035;
+      fixedAddon = 13.50;
+      glassValue = 29.90;
+      glassPercentage = 50;
+      canHaveFullGlass = false;
+      break;
+    case 'ESPECIAL':
+      fipePercentage = 0.0045;
+      fixedAddon = 3.50;
+      glassValue = 29.90;
+      glassPercentage = 50;
+      canHaveFullGlass = false;
+      break;
+    default:
+      fipePercentage = Number(rule.percentage_above_limit);
+      fixedAddon = 13.50;
+      glassValue = 0;
+      glassPercentage = 50;
+      canHaveFullGlass = false;
   }
 
-  // 3. Identify specific addons
+  const baseValue = fipeValue * fipePercentage;
+  const leilaoSinistroValue = hasLeilaoSinistro ? 39.90 : 0;
+
   let trackerValue = 0;
   if (rule.tracker_required) {
     trackerValue = 50.00;
   } else {
-    const trackerAddon = selectedAddons.find(a => a.name.toLowerCase() === 'rastreador');
+    const trackerAddon = selectedAddons.find(a => a.name.toLowerCase().includes('rastreador'));
     if (trackerAddon) trackerValue = Number(trackerAddon.price);
   }
 
-  // 4. Calculate Other Optional Addons
   const optionalAddonsValue = selectedAddons.reduce((acc, addon) => {
     const name = addon.name.toLowerCase();
-    // Don't count boleto and tracker twice as they are handled above
-    if (name === 'boleto' || name === 'taxa administrativa') return acc;
-    if (name === 'rastreador') return acc;
+    if (name.includes('taxa administrativa') || name.includes('rastreador')) return acc;
     return acc + Number(addon.price);
   }, 0);
 
-  // 5. Final Monthly Value
-  const finalMonthlyValue = fipeComponentValue + boletoValue + glassValue + trackerValue + optionalAddonsValue;
+  const finalMonthlyValue = baseValue + fixedAddon + glassValue + trackerValue + leilaoSinistroValue + optionalAddonsValue;
 
-  // 6. Calculate Participation Value
   let participationValue = 0;
   if (fipeValue <= rule.participation_limit) {
     participationValue = Number(rule.participation_fixed);
+  } else if (rule.participation_percentage_above_limit > 0) {
+    participationValue = fipeValue * Number(rule.participation_percentage_above_limit);
   } else {
-    if (rule.participation_percentage_above_limit > 0) {
-      participationValue = fipeValue * Number(rule.participation_percentage_above_limit);
-    } else {
-      participationValue = Number(rule.participation_fixed);
-    }
+    participationValue = Number(rule.participation_fixed);
   }
 
   return {
     fipeValue,
     fipePercentage,
-    fipeComponentValue,
-    fixedBaseValue: 0,
-    boletoValue,
-    trackerValue,
+    baseValue,
+    fixedAddon,
     glassValue,
+    trackerValue,
+    leilaoSinistroValue,
     optionalAddonsValue,
     finalMonthlyValue,
     participationValue,
     categoryName,
     glassPercentage,
-    categoryType
+    categoryType,
+    canHaveFullGlass,
   };
 };

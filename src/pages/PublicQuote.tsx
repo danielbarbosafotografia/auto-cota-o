@@ -7,6 +7,24 @@ import { format } from 'date-fns';
 import { calculateQuote } from '../lib/calculator';
 import type { CalculationResult } from '../lib/calculator';
 
+// Addons que não devem aparecer na cotação pública
+const shouldHideAddonPublic = (name: string): boolean => {
+  const n = name.toLowerCase().trim();
+  if (n === 'boleto' || n.includes('boleto')) return true;
+  if (n === 'taxa administrativa') return true;
+  if (n === 'rastreador' || n.includes('rastreador')) return true;
+  if (n.includes('vidros') && n.includes('importad')) return true;
+  if (n.includes('vidros') && n.includes('especial')) return true;
+  if (n.includes('vidros') && n.includes('caminhonete')) return true;
+  if ((n.includes('100%') || n.includes('100 %')) && n.includes('vidros')) return true;
+  if (n === 'alagamento') return true;
+  if (n.includes('hospitalidade')) return true;
+  if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
+  if (n.includes('guincho') && n.includes('1000')) return true;
+  if (n.includes('terceiros') && n.includes('3000')) return true;
+  return false;
+};
+
 const PublicQuote = () => {
   const { slug } = useParams();
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -42,7 +60,7 @@ const PublicQuote = () => {
         .select('*')
         .eq('active', true)
         .order('name');
-        
+
       if (allAddonsData) setAllAddons(allAddonsData);
 
       if (data.category_id) {
@@ -62,7 +80,6 @@ const PublicQuote = () => {
           setCalcResult(result);
         }
       }
-
     } catch (error) {
       console.error('Error fetching quote:', error);
     } finally {
@@ -91,6 +108,9 @@ const PublicQuote = () => {
     );
   }
 
+  // Rastreador aparece se obrigatório pela regra OU se foi contratado como addon
+  const hasTracker = trackerRequired || addons.some(a => a.name.toLowerCase().includes('rastreador'));
+
   const handleWhatsApp = () => {
     const message = `Olá! Quero seguir com a minha associação da Auto Excelência.
 
@@ -106,7 +126,7 @@ Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}
 
 *🎯 TOTAL DA MENSALIDADE: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*
 
-${trackerRequired ? '✔️ Rastreador incluso\n' : ''}✔️ Proteção Completa
+${hasTracker ? '✔️ Rastreador incluso\n' : ''}✔️ Proteção Completa
 ✔️ Assistência 24h
 
 Link oficial: ${window.location.href}`;
@@ -128,8 +148,18 @@ Link oficial: ${window.location.href}`;
         </div>
       </header>
 
+      {/* Rastreador destaque (visível no topo quando contratado) */}
+      {hasTracker && (
+        <div className="max-w-xl mx-auto px-4 pt-4">
+          <div className="bg-primary text-white rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg shadow-primary/20">
+            <CheckCircle2 size={22} className="shrink-0" />
+            <span className="font-bold text-sm">Rastreador incluso nesta cotação</span>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-xl mx-auto px-4 py-8 space-y-6">
-        
+
         {/* 🚗 Dados da cotação */}
         <section className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-100 p-5 flex items-center gap-3">
@@ -142,7 +172,7 @@ Link oficial: ${window.location.href}`;
               <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{quote.plate || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Código FIPE</span><strong className="text-gray-800">{quote.fipe_code || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {Number(calcResult.fipeComponentValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {Number(quote.base_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Participação de evento</span><strong className="text-gray-800">R$ {Number(quote.participation_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
@@ -174,12 +204,6 @@ Link oficial: ${window.location.href}`;
           </div>
           <div className="p-6">
             <ul className="space-y-3 text-sm text-gray-700">
-              {trackerRequired && (
-                <li className="flex items-start gap-3 text-primary font-bold bg-red-50 p-3 rounded-xl border border-red-100">
-                  <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-primary" />
-                  Rastreador incluso
-                </li>
-              )}
               {[
                 'Sem perfil de motorista',
                 'Cobertura em todo território nacional',
@@ -207,14 +231,12 @@ Link oficial: ${window.location.href}`;
           <div className="p-6">
             <ul className="space-y-3 text-sm text-gray-700">
               {[
-                'Livre para eventos',
-                'Até 500 km p/ panes (ida e volta)',
+                'Guincho: até 500 km (ida e volta) — 1 utilização a cada 30 dias',
                 'Cobertura pane seca, pneu furado e pane elétrica',
                 'Carga de bateria no local',
-                'Chaveiro (reembolso até R$ 100,00)',
-                'Táxi/Uber p/ retorno (até R$ 150,00)',
-                'Hospedagem em viagem (até R$ 100,00/dia)',
-                'Auxílio funeral (reembolso até R$ 3.000,00)'
+                'Chaveiro: reembolso em reais (1 utilização a cada 30 dias)',
+                'Táxi / Uber / Hospedagem: somente em caso de evento',
+                'Auxílio funeral (reembolso até R$ 5.000,00)',
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <Phone size={18} className="shrink-0 mt-0.5 text-orange-500" />
@@ -234,21 +256,15 @@ Link oficial: ${window.location.href}`;
           <div className="p-6">
             <p className="text-sm text-gray-500 mb-4">Veja os opcionais que você adquiriu e os demais disponíveis:</p>
             <div className="space-y-3">
-              {allAddons.filter(a => {
-                  const n = a.name.toLowerCase().trim();
-                  return !(n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto') || n === 'rastreador');
-              }).length > 0 ? (
-                allAddons.filter(a => {
-                    const n = a.name.toLowerCase().trim();
-                    return !(n === 'boleto' || n === 'taxa administrativa' || n.includes('boleto') || n === 'rastreador');
-                }).map(addon => {
+              {allAddons.filter(a => !shouldHideAddonPublic(a.name)).length > 0 ? (
+                allAddons.filter(a => !shouldHideAddonPublic(a.name)).map(addon => {
                   const isContracted = addons.some(a => a.addon_id === addon.id);
                   return (
-                    <div 
-                      key={addon.id} 
+                    <div
+                      key={addon.id}
                       className={`flex justify-between items-center p-3 rounded-xl border ${
-                        isContracted 
-                          ? 'bg-green-50/50 border-green-200' 
+                        isContracted
+                          ? 'bg-green-50/50 border-green-200'
                           : 'bg-gray-50 border-gray-100 opacity-70 grayscale'
                       }`}
                     >
@@ -271,14 +287,14 @@ Link oficial: ${window.location.href}`;
 
         {/* CTA */}
         <div className="pt-4 space-y-4">
-          <button 
+          <button
             onClick={handleWhatsApp}
             className="btn-primary w-full py-5 text-lg flex items-center justify-center gap-3 shadow-2xl shadow-primary/30"
           >
             <MessageSquare size={24} />
             Quero me associar agora
           </button>
-          
+
           {(quote as any).consultant_name && (
             <p className="text-center text-xs text-gray-500">
               Consultor: <strong className="text-gray-700">{(quote as any).consultant_name}</strong> — {(quote as any).consultant_city}/SC

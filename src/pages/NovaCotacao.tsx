@@ -7,12 +7,12 @@ import { calculateQuote } from '../lib/calculator';
 import type { CalculationResult } from '../lib/calculator';
 import { fetchBrands, fetchModels, fetchYears, fetchFipeValue, type VehicleType, type FipeBrand, type FipeModel, type FipeYear } from '../lib/fipeApi';
 import { inferCategory } from '../lib/categoryMapper';
-import { 
-  User, 
-  Car, 
-  Plus, 
-  CheckCircle2, 
-  ChevronRight, 
+import {
+  User,
+  Car,
+  Plus,
+  CheckCircle2,
+  ChevronRight,
   ChevronLeft,
   Check,
   Send,
@@ -24,6 +24,22 @@ import {
 } from 'lucide-react';
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
+
+// Addons que devem ser ocultados (incluídos na fórmula ou removidos do produto)
+const shouldExcludeAddon = (name: string): boolean => {
+  const n = name.toLowerCase();
+  if (n.includes('boleto')) return true;
+  if (n === 'alagamento') return true;
+  if (n.includes('hospitalidade')) return true;
+  if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
+  if (n.includes('guincho') && n.includes('1000')) return true;
+  if (n.includes('terceiros') && n.includes('3000')) return true;
+  if (n.includes('vidros') && n.includes('importad')) return true;
+  if (n.includes('vidros') && n.includes('especial')) return true;
+  if (n.includes('vidros') && n.includes('caminhonete')) return true;
+  if ((n.includes('100%') || n.includes('100 %')) && n.includes('vidros')) return true;
+  return false;
+};
 
 const NovaCotacao = () => {
   const { profile } = useAuth();
@@ -44,6 +60,7 @@ const NovaCotacao = () => {
     fipeValue: '',
     category: ''
   });
+  const [hasLeilaoSinistro, setHasLeilaoSinistro] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
 
   // Metadata State
@@ -57,7 +74,7 @@ const NovaCotacao = () => {
   const [fipeBrands, setFipeBrands] = useState<FipeBrand[]>([]);
   const [fipeModels, setFipeModels] = useState<FipeModel[]>([]);
   const [fipeYears, setFipeYears] = useState<FipeYear[]>([]);
-  
+
   const [selectedBrandCode, setSelectedBrandCode] = useState('');
   const [selectedModelCode, setSelectedModelCode] = useState('');
   const [selectedYearCode, setSelectedYearCode] = useState('');
@@ -81,7 +98,7 @@ const NovaCotacao = () => {
       .select('status')
       .ilike('name', `%${modelName}%`)
       .limit(1);
-    
+
     if (data && data.length > 0) {
       setModelStatus(data[0].status);
     } else {
@@ -108,7 +125,6 @@ const NovaCotacao = () => {
     if (addonRes.data) setAddons(addonRes.data);
   };
 
-  // Load Brands when type changes
   useEffect(() => {
     fetchBrands(fipeType).then(setFipeBrands).catch(console.error);
     setSelectedBrandCode('');
@@ -118,7 +134,6 @@ const NovaCotacao = () => {
     setSelectedYearCode('');
   }, [fipeType]);
 
-  // Load Models when brand changes
   useEffect(() => {
     if (!selectedBrandCode) return;
     fetchModels(fipeType, selectedBrandCode).then(setFipeModels).catch(console.error);
@@ -127,27 +142,22 @@ const NovaCotacao = () => {
     setSelectedYearCode('');
   }, [selectedBrandCode, fipeType]);
 
-  // Load Years when model changes
   useEffect(() => {
     if (!selectedModelCode) return;
     fetchYears(fipeType, selectedBrandCode, selectedModelCode).then(setFipeYears).catch(console.error);
     setSelectedYearCode('');
   }, [selectedModelCode, selectedBrandCode, fipeType]);
 
-  // Load FIPE value when year changes
   useEffect(() => {
     if (!selectedYearCode) return;
     setFipeLoading(true);
     fetchFipeValue(fipeType, selectedBrandCode, selectedModelCode, selectedYearCode)
       .then((data) => {
-        // Parse FIPE Value "R$ 15.000,00" to 15000
         const numericValue = data.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-        
-        // Auto categorize
+
         const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType);
         setModelStatus(status);
 
-        // Find the category ID from the loaded categories
         const matchedCategory = categories.find(c => c.name.toUpperCase() === categoryName);
 
         setVehicle({
@@ -164,8 +174,24 @@ const NovaCotacao = () => {
       .finally(() => setFipeLoading(false));
   }, [selectedYearCode, fipeType, selectedBrandCode, selectedModelCode, categories]);
 
+  const performCalculation = () => {
+    const selectedCategory = categories.find(c => c.id === vehicle.category);
+    const rule = rules.find(r => r.category_id === vehicle.category);
+
+    if (rule && selectedCategory) {
+      const calc = calculateQuote(
+        Number(vehicle.fipeValue),
+        rule,
+        selectedAddons,
+        selectedCategory.name,
+        hasLeilaoSinistro
+      );
+      setResult(calc);
+    }
+  };
+
   const handleNextStep = () => {
-    if (step === 2) {
+    if (step === 2 || step === 3) {
       performCalculation();
     }
     setStep(step + 1);
@@ -177,21 +203,6 @@ const NovaCotacao = () => {
     window.scrollTo(0, 0);
   };
 
-  const performCalculation = () => {
-    const selectedCategory = categories.find(c => c.id === vehicle.category);
-    const rule = rules.find(r => r.category_id === vehicle.category);
-    
-    if (rule && selectedCategory) {
-      const calc = calculateQuote(
-        Number(vehicle.fipeValue),
-        rule,
-        selectedAddons,
-        selectedCategory.name
-      );
-      setResult(calc);
-    }
-  };
-
   const toggleAddon = (addon: Addon) => {
     if (selectedAddons.find(a => a.id === addon.id)) {
       setSelectedAddons(selectedAddons.filter(a => a.id !== addon.id));
@@ -200,16 +211,47 @@ const NovaCotacao = () => {
     }
   };
 
+  // Filtra addons para exibição — remove os que não fazem parte do produto
+  const getVisibleAddons = () => {
+    return addons.filter(addon => {
+      if (shouldExcludeAddon(addon.name)) return false;
+      // Caminhonete e Especial não podem ter 100% de vidros
+      if (result && !result.canHaveFullGlass) {
+        const n = addon.name.toLowerCase();
+        if (n.includes('100%') || n.includes('100 %')) return false;
+      }
+      return true;
+    });
+  };
+
   const saveQuote = async () => {
     if (!result) return;
     setSaving(true);
-    
+
     try {
+      // Tenta obter seller_id do perfil autenticado, ou busca pelo nome do consultor
+      let sellerId: string | undefined = profile?.id;
+
+      if (!sellerId) {
+        const consultorName = localStorage.getItem('consultor_nome');
+        if (consultorName) {
+          const { data: sellerData } = await supabase
+            .from('profiles')
+            .select('id')
+            .ilike('name', consultorName)
+            .limit(1)
+            .maybeSingle();
+          if (sellerData) sellerId = sellerData.id;
+        }
+      }
+
       const slug = Math.random().toString(36).substring(2, 10);
+      const addonsTotal = result.glassValue + result.trackerValue + result.leilaoSinistroValue + result.optionalAddonsValue;
+
       const { data: quote, error } = await supabase
         .from('quotes')
         .insert({
-          seller_id: profile?.id,
+          seller_id: sellerId,
           client_name: client.name,
           client_whatsapp: client.whatsapp,
           plate: vehicle.plate,
@@ -222,8 +264,8 @@ const NovaCotacao = () => {
           category_name: result.categoryName,
           consultant_name: localStorage.getItem('consultor_nome'),
           consultant_city: localStorage.getItem('consultor_cidade'),
-          base_monthly_value: result.fipeComponentValue,
-          addons_total: result.boletoValue + result.trackerValue + result.optionalAddonsValue + result.glassValue,
+          base_monthly_value: result.baseValue + result.fixedAddon,
+          addons_total: addonsTotal,
           final_monthly_value: result.finalMonthlyValue,
           participation_value: result.participationValue,
           inspection_fee: 200,
@@ -235,21 +277,27 @@ const NovaCotacao = () => {
 
       if (error) throw error;
 
-      // Save quote addons
+      const addonsToSave: { quote_id: string; addon_id: string; name: string; price: number }[] = [];
+
       if (selectedAddons.length > 0) {
-        const quoteAddons = selectedAddons.map(a => ({
-          quote_id: quote.id,
-          addon_id: a.id,
-          name: a.name,
-          price: a.price
-        }));
-        await supabase.from('quote_addons').insert(quoteAddons);
+        selectedAddons.forEach(a => {
+          addonsToSave.push({ quote_id: quote.id, addon_id: a.id, name: a.name, price: Number(a.price) });
+        });
+      }
+
+      if (hasLeilaoSinistro) {
+        addonsToSave.push({ quote_id: quote.id, addon_id: 'leilao-sinistro', name: 'Leilão/Sinistro', price: 39.90 });
+      }
+
+      if (addonsToSave.length > 0) {
+        await supabase.from('quote_addons').insert(addonsToSave);
       }
 
       setSavedSlug(slug);
-    } catch (error) {
-      console.error('Error saving quote:', error);
-      alert('Erro ao salvar cotação.');
+    } catch (err) {
+      console.error('Erro ao salvar cotação:', err);
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      alert(`Erro ao salvar cotação: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -306,14 +354,14 @@ const NovaCotacao = () => {
               <p className="text-sm text-gray-500">Identifique para quem é esta cotação.</p>
             </div>
           </div>
-          
+
           <div className="card">
             <div className="space-y-4">
               <div>
                 <label className="label">Nome completo</label>
-                <input 
-                  type="text" 
-                  className="input-field" 
+                <input
+                  type="text"
+                  className="input-field"
                   placeholder="Nome do cliente"
                   value={client.name}
                   onChange={e => setClient({...client, name: e.target.value})}
@@ -321,9 +369,9 @@ const NovaCotacao = () => {
               </div>
               <div>
                 <label className="label">WhatsApp</label>
-                <input 
-                  type="tel" 
-                  className="input-field" 
+                <input
+                  type="tel"
+                  className="input-field"
                   placeholder="(00) 00000-0000"
                   value={client.whatsapp}
                   onChange={e => setClient({...client, whatsapp: e.target.value})}
@@ -362,7 +410,7 @@ const NovaCotacao = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Marca</label>
-                <select 
+                <select
                   className="input-field"
                   value={selectedBrandCode}
                   onChange={e => setSelectedBrandCode(e.target.value)}
@@ -375,7 +423,7 @@ const NovaCotacao = () => {
               </div>
               <div>
                 <label className="label">Modelo</label>
-                <select 
+                <select
                   className="input-field"
                   value={selectedModelCode}
                   onChange={e => setSelectedModelCode(e.target.value)}
@@ -392,7 +440,7 @@ const NovaCotacao = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label">Ano</label>
-                <select 
+                <select
                   className="input-field"
                   value={selectedYearCode}
                   onChange={e => setSelectedYearCode(e.target.value)}
@@ -406,9 +454,9 @@ const NovaCotacao = () => {
               </div>
               <div>
                 <label className="label">Placa (Opcional)</label>
-                <input 
-                  type="text" 
-                  className="input-field uppercase" 
+                <input
+                  type="text"
+                  className="input-field uppercase"
                   placeholder="AAA-0000"
                   value={vehicle.plate}
                   onChange={e => setVehicle({...vehicle, plate: e.target.value.toUpperCase()})}
@@ -430,7 +478,7 @@ const NovaCotacao = () => {
                   </span>
                   <span className="text-xs text-gray-500">Cód: {vehicle.fipeCode}</span>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-xs text-gray-500">Valor FIPE</p>
@@ -446,18 +494,31 @@ const NovaCotacao = () => {
                   </div>
                 </div>
 
+                {/* Leilão / Sinistro */}
+                <label className="flex items-center gap-3 mt-2 cursor-pointer p-3 bg-orange-50 rounded-xl border border-orange-100">
+                  <input
+                    type="checkbox"
+                    checked={hasLeilaoSinistro}
+                    onChange={e => setHasLeilaoSinistro(e.target.checked)}
+                    className="w-4 h-4 accent-orange-500"
+                  />
+                  <span className="text-sm font-semibold text-orange-800">
+                    Veículo com histórico de leilão ou sinistro <span className="text-orange-500 font-bold">(+ R$ 39,90/mês)</span>
+                  </span>
+                </label>
+
                 {modelStatus === 'restricted' && (
-                  <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                  <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2 mt-3">
                     ⚠️ Este veículo NÃO É ACEITO pela Auto Excelência.
                   </div>
                 )}
                 {modelStatus === 'consult' && (
-                  <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2">
+                  <div className="bg-orange-100 text-orange-700 p-3 rounded-lg text-sm font-bold flex items-center gap-2 mt-3">
                     ⚠️ Este veículo requer CONSULTA PRÉVIA. Venda sujeita a análise.
                   </div>
                 )}
                 {!vehicle.category && modelStatus !== 'restricted' && (
-                  <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-sm">
+                  <div className="bg-yellow-50 text-yellow-700 p-3 rounded-lg text-sm mt-3">
                     Não foi possível identificar a categoria automaticamente. Por favor, verifique com o administrador.
                   </div>
                 )}
@@ -480,7 +541,7 @@ const NovaCotacao = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            {addons.map((addon) => {
+            {getVisibleAddons().map((addon) => {
               const isSelected = selectedAddons.find(a => a.id === addon.id);
               return (
                 <button
@@ -526,7 +587,7 @@ const NovaCotacao = () => {
               <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Total Mensal</p>
               <h3 className="text-4xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Veículo</span>
@@ -544,17 +605,41 @@ const NovaCotacao = () => {
 
             <div className="p-6 space-y-3 bg-gray-50/50">
               <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Resumo Financeiro</h4>
+
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Valor Base</span>
-                <span className="font-medium">R$ {result.fipeComponentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="text-gray-500">Valor Base (FIPE × {(result.fipePercentage * 100).toFixed(2)}%)</span>
+                <span className="font-medium">R$ {result.baseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
+
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Adicionais</span>
-                <span className="font-medium">R$ {(result.boletoValue + result.trackerValue + result.optionalAddonsValue + result.glassValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span className="text-gray-500">Taxa fixa</span>
+                <span className="font-medium">R$ {result.fixedAddon.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
-              {selectedAddons.length > 0 && (
+
+              {result.glassValue > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">{result.glassPercentage}% Vidros / Faróis / Retrovisores</span>
+                  <span className="font-medium">R$ {result.glassValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
+              {result.trackerValue > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Rastreador</span>
+                  <span className="font-medium">R$ {result.trackerValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
+              {result.leilaoSinistroValue > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Leilão / Sinistro</span>
+                  <span className="font-medium">R$ {result.leilaoSinistroValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+
+              {selectedAddons.filter(a => !a.name.toLowerCase().includes('rastreador')).length > 0 && (
                 <div className="pl-4 border-l-2 border-gray-100 mt-2 space-y-1">
-                  {selectedAddons.map(a => (
+                  {selectedAddons.filter(a => !a.name.toLowerCase().includes('rastreador')).map(a => (
                     <div key={a.id} className="flex justify-between text-xs text-gray-500">
                       <span>+ {a.name}</span>
                       <span>R$ {Number(a.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
@@ -562,6 +647,7 @@ const NovaCotacao = () => {
                   ))}
                 </div>
               )}
+
               <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
                 <span className="text-gray-700 font-bold">Participação Evento</span>
                 <span className="font-bold text-primary">R$ {result.participationValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
@@ -575,8 +661,8 @@ const NovaCotacao = () => {
 
           {!savedSlug ? (
             <div className="flex flex-col gap-3">
-              <button 
-                onClick={saveQuote} 
+              <button
+                onClick={saveQuote}
                 disabled={saving}
                 className="btn-primary flex items-center justify-center gap-2 py-4"
               >
@@ -594,12 +680,12 @@ const NovaCotacao = () => {
                 <Send size={18} />
                 Enviar no WhatsApp
               </button>
-              <button 
-                onClick={() => { 
+              <button
+                onClick={() => {
                   localStorage.removeItem('consultor_nome');
                   localStorage.removeItem('consultor_cidade');
-                  navigate('/dashboard'); 
-                }} 
+                  navigate('/dashboard');
+                }}
                 className="btn-secondary flex items-center justify-center gap-2 py-3"
               >
                 <ArrowLeft size={18} />
@@ -617,7 +703,7 @@ const NovaCotacao = () => {
       {/* Navigation Buttons */}
       <div className="fixed bottom-24 left-0 right-0 px-6 md:static md:px-0 md:mt-10 flex justify-between pointer-events-none">
         {step > 1 && step < 4 && (
-          <button 
+          <button
             onClick={handlePrevStep}
             className="btn-secondary bg-white shadow-xl flex items-center gap-2 pointer-events-auto"
           >
@@ -626,7 +712,7 @@ const NovaCotacao = () => {
           </button>
         )}
         {step < 4 && (
-          <button 
+          <button
             onClick={handleNextStep}
             disabled={
               (step === 1 && (!client.name || !client.whatsapp)) ||
