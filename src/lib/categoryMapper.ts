@@ -24,8 +24,8 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
     { keywords: ['MOHAVE', 'CARENS', 'CERATO', 'VERA CRUZ', 'SOUL', 'OPTIMA'], category: 'NÃO FAZ', status: 'restricted' },
   ],
   'CITROEN': [
-    { keywords: ['C3', 'C3 TENDENCE'], category: 'NACIONAL' },
-    { keywords: ['AIRCROSS', 'C3 PICASSO', 'C4 LOUNG', 'C4 CACTUS'], category: 'IMPORTADO' },
+    { keywords: ['C3', 'C3 TENDANCE', 'C3 TENDANCE'], category: 'NACIONAL' },
+    { keywords: ['AIRCROSS', 'C3 PICASSO', 'C4 LOUNGE', 'C4 CACTUS'], category: 'IMPORTADO' },
     { keywords: ['JUMPER'], category: '7 MIL KG' },
     { keywords: ['C4 GRAN PICASSO', 'C4 PALLAS', 'C4 PICASSO'], category: 'NÃO FAZ', status: 'restricted' },
   ],
@@ -48,8 +48,8 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
     { keywords: ['J1', 'J2', 'J3', 'J5', 'J6'], category: 'ESPECIAL 1' },
   ],
   'BMW': [
-    { keywords: ['116', '118', '130', '325', '328', '335'], category: 'ESPECIAL 1' },
-    { keywords: ['125', '135', '320', '330'], category: 'IMPORTADO' },
+    { keywords: ['116', '118', '130', '325', '330', '335'], category: 'ESPECIAL 1' },
+    { keywords: ['125', '135', '320', '328'], category: 'IMPORTADO' },
     { keywords: ['X1'], category: 'CAMINHONETE IMPORTADA' },
     { keywords: ['X2', 'X3', 'X4', 'X5', 'X6'], category: 'NÃO FAZ', status: 'restricted' },
   ],
@@ -78,6 +78,9 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
     { keywords: ['WR-V'], category: 'IMPORTADO' },
     { keywords: ['CR-V', 'HR-V'], category: 'CAMINHONETE IMPORTADA' },
     { keywords: ['ACCORD'], category: 'NÃO FAZ', status: 'restricted' },
+    // MOTOS
+    { keywords: ['CG 125', 'CG 150', 'BIZ 100', 'BIZ 125', 'CB 300', 'TWISTER', 'CG 160', 'XRE 190', 'XRE 300'], category: 'MOTO' },
+    { keywords: ['HORNET', 'CB 650', 'CB 500 F', 'CB 650 F', 'FALCON'], category: 'MOTO' },
   ],
   'VOLKSWAGEN': [
     { keywords: ['UP', 'VIRTUS', 'VOYAGE', 'POLO', 'CROSSFOX', 'FOX', 'GOL', 'GOLF', 'SPACEFOX'], category: 'NACIONAL' },
@@ -98,11 +101,11 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
     { keywords: ['QQ', 'TIGGO'], category: 'CAMINHONETE ESPECIAL' },
   ],
   'FIAT': [
-    { keywords: ['500'], category: 'IMPORTADO' },
+    { keywords: ['500', 'IDEA'], category: 'IMPORTADO' },
     { keywords: ['TORO'], category: 'CAMINHONETE NACIONAL' },
     { keywords: ['DUCATO'], category: '7 MIL KG' },
     { keywords: ['FREEMONT'], category: 'CAMINHONETE ESPECIAL' },
-    { keywords: ['IDEA', 'CRONOS', 'DOBLO', 'ARGO', 'GRAN SIENA', 'SIENA', 'UNO', 'MOBI', 'PUNTO', 'PULSE', 'PALIO'], category: 'NACIONAL' },
+    { keywords: ['CRONOS', 'DOBLO', 'ARGO', 'GRAN SIENA', 'SIENA', 'UNO', 'MOBI', 'PUNTO', 'PULSE', 'PALIO'], category: 'NACIONAL' },
     { keywords: ['STRADA', 'FIORINO'], category: 'UTILITÁRIO' },
     { keywords: ['STILO', 'LINEA', 'MAREA', 'BRAVA', 'BRAVO'], category: 'NÃO FAZ', status: 'restricted' },
   ],
@@ -112,7 +115,7 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
   'TOYOTA': [
     { keywords: ['COROLLA', 'ETIOS', 'FIELDER'], category: 'NACIONAL' },
     { keywords: ['YARIS'], category: 'IMPORTADO' },
-    { keywords: ['SW4', 'HILUX', 'PRIUS', 'CAMRRY'], category: 'NÃO FAZ', status: 'restricted' },
+    { keywords: ['SW4', 'HILUX', 'PRIUS', 'CAMRY'], category: 'NÃO FAZ', status: 'restricted' },
   ],
   'NISSAN': [
     { keywords: ['VERSA', 'TIIDA', 'SENTRA', 'LIVINA', 'MARCH'], category: 'IMPORTADO' },
@@ -122,11 +125,14 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
     { keywords: ['FIESTA', 'KA'], category: 'NACIONAL' },
     { keywords: ['NEW FIESTA', 'FOCUS ACIMA 2008'], category: 'IMPORTADO' },
     { keywords: ['ECOSPORT', 'RANGER'], category: 'CAMINHONETE NACIONAL' },
+    { keywords: ['RANGER'], category: 'NÃO FAZ', status: 'restricted', yearRange: { min: 2011 } },
     { keywords: ['COURIER'], category: 'UTILITÁRIO' },
     { keywords: ['FOCUS ATÉ 2008', 'FUSION', 'EDGE'], category: 'ESPECIAL 1' },
+    { keywords: ['FUSION'], category: 'NÃO FAZ', status: 'restricted', yearRange: { min: 2006, max: 2010 } },
     { keywords: ['F1000', 'F250'], category: '7 MIL KG' },
     { keywords: ['FOCUS AUT'], category: 'CONSULTAR', status: 'consult' },
     { keywords: ['LIGA NO BOTÃO', 'FUSION 2006', 'RANGER 2010'], category: 'NÃO FAZ', status: 'restricted' },
+    { keywords: ['FOCUS'], category: 'NÃO FAZ', status: 'restricted', yearRange: { min: 2009, max: 2009 } },
   ],
   'PEUGEOT': [
     { keywords: ['206', '207', '208', '2008'], category: 'NACIONAL' },
@@ -144,22 +150,19 @@ const BRAND_RULES: Record<string, CategoryMatch[]> = {
   'VOLVO': [
     { keywords: ['XC60'], category: 'CAMINHONETE ESPECIAL' },
   ],
+  'YAMAHA': [
+    { keywords: ['FAZER 150', 'YS 150', 'NEO', 'YBR'], category: 'MOTO' },
+    { keywords: ['MT 03', 'MT 07', 'MT 09'], category: 'MOTO' },
+    { keywords: ['CARENADA'], category: 'NÃO FAZ', status: 'restricted' },
+  ],
+  'TRIUMPH': [
+    { keywords: ['TIGER 800', 'TIGER 900', 'TIGER 1200'], category: 'MOTO 0.9%' },
+  ],
 };
 
-export const inferCategory = (brand: string, model: string, type: string, year?: number): { categoryName: string | null, status: 'active' | 'consult' | 'restricted' } => {
+export const inferCategory = (brand: string, model: string, year?: number): { categoryName: string | null, status: 'active' | 'consult' | 'restricted' } => {
   const b = brand.toUpperCase();
   const m = model.toUpperCase();
-
-  // Handle Motorcycles
-  if (type === 'motos') {
-    if (m.includes('CARENADA')) return { categoryName: 'MOTO', status: 'restricted' };
-    return { categoryName: 'MOTO', status: 'active' };
-  }
-
-  // Handle Trucks
-  if (type === 'caminhoes') {
-    return { categoryName: '7000 KG', status: 'active' };
-  }
 
   // Check specific brand rules
   const brandName = Object.keys(BRAND_RULES).find(key => b.includes(key)) || b;
@@ -181,6 +184,6 @@ export const inferCategory = (brand: string, model: string, type: string, year?:
   }
 
   // Fallback defaults: The user says "NÃO DEVE DEDUZIR".
-  // So if not found, we should probably mark as CONSULTAR or restricted.
+  // Se não encontrar, retornar CONSULTAR e não calcular automaticamente.
   return { categoryName: null, status: 'consult' };
 };

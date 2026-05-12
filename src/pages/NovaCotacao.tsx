@@ -186,7 +186,7 @@ const NovaCotacao = () => {
         const numericValue = data.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
         const vehicleYear = parseInt(data.AnoModelo.toString());
 
-        const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType, vehicleYear);
+        const { categoryName, status } = inferCategory(data.Marca, data.Modelo, vehicleYear);
         setModelStatus(status);
 
         const matchedCategory = categories.find(c => c.name.trim().toUpperCase() === categoryName?.trim().toUpperCase());
