@@ -25,10 +25,34 @@ import {
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
 
-// Addons que devem ser ocultados (apenas se houver necessidade técnica específica)
-const shouldExcludeAddon = (_name: string): boolean => {
-  // Removida filtragem por nome para permitir carregamento dinâmico do banco de dados
-  return false;
+// Lista de palavras-chave permitidas (Lista Oficial)
+const ALLOWED_KEYWORDS = [
+  'alagamento',
+  'guincho',
+  'terceiros',
+  'vidro',
+  'fipe',
+  'assistencial'
+];
+
+// Nomes que devem ser BLOQUEADOS mesmo se tiverem as palavras acima
+const BLOCKED_NAMES = [
+  'boleto',
+  'diárias excedentes',
+  'importado',
+  'especial'
+];
+
+const shouldExcludeAddon = (name: string): boolean => {
+  const n = name.toLowerCase().trim();
+  
+  // 1. Bloqueia explicitamente o que não deve aparecer
+  if (BLOCKED_NAMES.some(blocked => n.includes(blocked))) return true;
+  
+  // 2. Permite apenas se tiver uma das palavras-chave oficiais
+  const isAllowed = ALLOWED_KEYWORDS.some(keyword => n.includes(keyword));
+  
+  return !isAllowed;
 };
 
 const NovaCotacao = () => {
@@ -113,7 +137,11 @@ const NovaCotacao = () => {
 
     if (catRes.data) setCategories(catRes.data);
     if (ruleRes.data) setRules(ruleRes.data);
-    if (addonRes.data) setAddons(addonRes.data);
+    if (addonRes.data) {
+      // Filtra os adicionais imediatamente ao carregar
+      const filtered = addonRes.data.filter(a => !shouldExcludeAddon(a.name));
+      setAddons(filtered);
+    }
   };
 
   useEffect(() => {

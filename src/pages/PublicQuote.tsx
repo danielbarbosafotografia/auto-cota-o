@@ -7,10 +7,29 @@ import { format } from 'date-fns';
 import { calculateQuote } from '../lib/calculator';
 import type { CalculationResult } from '../lib/calculator';
 
-// Addons que não devem aparecer na cotação pública
-const shouldHideAddonPublic = (_name: string): boolean => {
-  // Removida filtragem por nome para permitir carregamento dinâmico do banco de dados
-  return false;
+// Lista de palavras-chave permitidas (Lista Oficial)
+const ALLOWED_KEYWORDS_PUBLIC = [
+  'alagamento',
+  'guincho',
+  'terceiros',
+  'vidro',
+  'fipe',
+  'assistencial'
+];
+
+// Nomes que devem ser BLOQUEADOS
+const BLOCKED_NAMES_PUBLIC = [
+  'boleto',
+  'diárias excedentes',
+  'importado',
+  'especial'
+];
+
+const shouldHideAddonPublic = (name: string): boolean => {
+  const n = name.toLowerCase().trim();
+  if (BLOCKED_NAMES_PUBLIC.some(blocked => n.includes(blocked))) return true;
+  const isAllowed = ALLOWED_KEYWORDS_PUBLIC.some(keyword => n.includes(keyword));
+  return !isAllowed;
 };
 
 const PublicQuote = () => {
