@@ -25,17 +25,9 @@ import {
 import type { PricingRule, Addon, VehicleCategory } from '../types';
 import { clsx } from 'clsx';
 
-// Addons que devem ser ocultados (incluídos na fórmula ou removidos do produto)
-const shouldExcludeAddon = (name: string): boolean => {
-  const n = name.toLowerCase();
-  if (n.includes('boleto')) return true;
-  if (n === 'alagamento') return true;
-  if (n.includes('hospitalidade')) return true;
-  if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
-  if (n.includes('guincho') && n.includes('1000')) return true;
-  if (n.includes('terceiros') && (n.includes('3000') || n.includes('300'))) return true;
-  // Vidros, farol, retrovisor e lanterna são embutidos no cálculo por categoria
-  if (n.includes('vidro') || n.includes('farol') || n.includes('retrovisor') || n.includes('lanterna')) return true;
+// Addons que devem ser ocultados (apenas se houver necessidade técnica específica)
+const shouldExcludeAddon = (_name: string): boolean => {
+  // Removida filtragem por nome para permitir carregamento dinâmico do banco de dados
   return false;
 };
 

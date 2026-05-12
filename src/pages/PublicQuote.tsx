@@ -8,17 +8,8 @@ import { calculateQuote } from '../lib/calculator';
 import type { CalculationResult } from '../lib/calculator';
 
 // Addons que não devem aparecer na cotação pública
-const shouldHideAddonPublic = (name: string): boolean => {
-  const n = name.toLowerCase().trim();
-  if (n.includes('boleto')) return true;
-  if (n.includes('taxa administrativa')) return true;
-  if (n === 'alagamento') return true;
-  if (n.includes('hospitalidade')) return true;
-  if (n.includes('diária') || n.includes('diarias') || n.includes('diárias')) return true;
-  if (n.includes('guincho') && n.includes('1000')) return true;
-  if (n.includes('terceiros') && (n.includes('3000') || n.includes('300'))) return true;
-  // Vidros/farol/retrovisor/lanterna são embutidos no cálculo — não aparecem como opcional
-  if (n.includes('vidro') || n.includes('farol') || n.includes('retrovisor') || n.includes('lanterna')) return true;
+const shouldHideAddonPublic = (_name: string): boolean => {
+  // Removida filtragem por nome para permitir carregamento dinâmico do banco de dados
   return false;
 };
 
