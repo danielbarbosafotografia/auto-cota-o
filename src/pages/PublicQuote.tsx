@@ -36,7 +36,16 @@ const PublicQuote = () => {
   const { slug } = useParams();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [addons, setAddons] = useState<QuoteAddon[]>([]);
-  const [allAddons, setAllAddons] = useState<any[]>([]);
+  const [allAddons, setAllAddons] = useState<any[]>([
+    { id: 'h1', name: 'Alagamento', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h2', name: 'Guincho de 1000 km', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h3', name: 'Terceiros até R$ 300.000,00', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h4', name: '100% vidros/farol/retrovisor/lanterna nacional', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h5', name: 'Indenização 100% FIPE (veículos com leilão ou sinistro)', price: 39.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h6', name: 'Cobertura 100% para todos os vidros, retrovisores, faróis e lanternas (somente nacionais)', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h7', name: 'Carro assistencial 7 dias', price: 9.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h8', name: 'Carro assistencial 15 dias', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true }
+  ]);
   const [trackerRequired, setTrackerRequired] = useState(false);
   const [loading, setLoading] = useState(true);
   const [calcResult, setCalcResult] = useState<CalculationResult | null>(null);
