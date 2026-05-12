@@ -32,7 +32,8 @@ const ALLOWED_KEYWORDS = [
   'terceiros',
   'vidro',
   'fipe',
-  'assistencial'
+  'assistencial',
+  'rastreador'
 ];
 
 // Nomes que devem ser BLOQUEADOS mesmo se tiverem as palavras acima
@@ -89,7 +90,8 @@ const NovaCotacao = () => {
     { id: 'h5', name: 'Indenização 100% FIPE (veículos com leilão ou sinistro)', price: 39.90, description: 'Proteção adicional para seu veículo.', active: true },
     { id: 'h6', name: 'Cobertura 100% para todos os vidros, retrovisores, faróis e lanternas (somente nacionais)', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
     { id: 'h7', name: 'Carro assistencial 7 dias', price: 9.90, description: 'Proteção adicional para seu veículo.', active: true },
-    { id: 'h8', name: 'Carro assistencial 15 dias', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true }
+    { id: 'h8', name: 'Carro assistencial 15 dias', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h9', name: 'Rastreador', price: 50.00, description: 'Proteção adicional para seu veículo.', active: true }
   ]);
   const [result, setResult] = useState<CalculationResult | null>(null);
 
@@ -182,11 +184,12 @@ const NovaCotacao = () => {
     fetchFipeValue(fipeType, selectedBrandCode, selectedModelCode, selectedYearCode)
       .then((data) => {
         const numericValue = data.Valor.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        const vehicleYear = parseInt(data.AnoModelo.toString());
 
-        const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType);
+        const { categoryName, status } = inferCategory(data.Marca, data.Modelo, fipeType, vehicleYear);
         setModelStatus(status);
 
-        const matchedCategory = categories.find(c => c.name.toUpperCase() === categoryName);
+        const matchedCategory = categories.find(c => c.name.trim().toUpperCase() === categoryName?.trim().toUpperCase());
 
         setVehicle({
           plate: vehicle.plate,
@@ -205,6 +208,16 @@ const NovaCotacao = () => {
   const performCalculation = () => {
     const selectedCategory = categories.find(c => c.id === vehicle.category);
     const rule = rules.find(r => r.category_id === vehicle.category);
+
+    if (modelStatus === 'restricted') {
+      alert('Este veículo não é aceito pela Auto Excelência (NÃO FAZ).');
+      return;
+    }
+
+    if (modelStatus === 'consult') {
+      alert('Este veículo requer CONSULTA PRÉVIA. Não é possível gerar cálculo automático.');
+      return;
+    }
 
     if (rule && selectedCategory) {
       const calc = calculateQuote(
@@ -614,9 +627,9 @@ const NovaCotacao = () => {
 
           <div className="card divide-y divide-gray-100 p-0 overflow-hidden">
             <div className="p-6 bg-secondary text-white">
-              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Valor Mensal</p>
-              <h3 className="text-4xl font-black">R$ {(result.finalMonthlyValue - result.fixedAddon).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-              <p className="text-gray-400 text-xs mt-2">+ R$ {result.fixedAddon.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de taxa administrativa</p>
+              <p className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-1">Valor Total Mensal</p>
+              <h3 className="text-4xl font-black">R$ {result.finalMonthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+              <p className="text-gray-400 text-xs mt-2">Incluindo taxa administrativa de R$ {result.fixedAddon.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
             </div>
 
             <div className="p-6 space-y-4">
@@ -746,11 +759,11 @@ const NovaCotacao = () => {
             onClick={handleNextStep}
             disabled={
               (step === 1 && (!client.name || !client.whatsapp)) ||
-              (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted'))
+              (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted' || modelStatus === 'consult'))
             }
             className={clsx(
               "btn-primary shadow-xl flex items-center gap-2 ml-auto pointer-events-auto",
-              ((step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted'))) && "opacity-50 cursor-not-allowed"
+              ((step === 1 && (!client.name || !client.whatsapp)) || (step === 2 && (!vehicle.brand || !vehicle.model || !vehicle.fipeValue || !vehicle.category || modelStatus === 'restricted' || modelStatus === 'consult'))) && "opacity-50 cursor-not-allowed"
             )}
           >
             Próximo

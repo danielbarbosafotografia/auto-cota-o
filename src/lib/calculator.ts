@@ -24,15 +24,7 @@ export type CalculationResult = {
   categoryType: CategoryType;
 };
 
-const detectCategoryType = (categoryName: string): CategoryType => {
-  const cat = categoryName.toUpperCase();
-  if (cat.includes('ESPECIAL')) return 'ESPECIAL';
-  if (cat.includes('CAMINHONETE') && cat.includes('IMPORTAD')) return 'CAMINHONETE_IMPORTADA';
-  if (cat.includes('CAMINHONETE')) return 'CAMINHONETE_NACIONAL';
-  if (cat.includes('IMPORTAD')) return 'IMPORTADO';
-  if (cat.includes('NACIONAL')) return 'NACIONAL';
-  return 'OUTROS';
-};
+
 
 export const calculateQuote = (
   fipeValue: number,
@@ -41,55 +33,31 @@ export const calculateQuote = (
   categoryName: string,
   hasLeilaoSinistro = false
 ): CalculationResult => {
-  const categoryType = detectCategoryType(categoryName);
+  const fipeValueNum = Number(fipeValue);
+  const fixedAddon = 13.50; // Taxa administrativa fixa obrigatória
 
-  let fipePercentage: number;
-  let fixedAddon: number;
-  let glassValue: number;
-  let glassPercentage: number;
-
-  switch (categoryType) {
-    case 'NACIONAL':
-      fipePercentage = 0.0025;
-      fixedAddon = 13.50;
-      glassValue = 0;
-      glassPercentage = 0;
-      break;
-    case 'IMPORTADO':
-      fipePercentage = 0.0035;
-      fixedAddon = 13.50;
-      glassValue = 0;
-      glassPercentage = 0;
-      break;
-    case 'CAMINHONETE_NACIONAL':
-      fipePercentage = 0.0025;
-      fixedAddon = 13.50;
-      glassValue = 0;
-      glassPercentage = 0;
-      break;
-    case 'CAMINHONETE_IMPORTADA':
-      fipePercentage = 0.0035;
-      fixedAddon = 13.50;
-      glassValue = 0;
-      glassPercentage = 0;
-      break;
-    case 'ESPECIAL':
-      fipePercentage = 0.0045;
-      fixedAddon = 3.50;
-      glassValue = 0;
-      glassPercentage = 0;
-      break;
-    default:
-      fipePercentage = Number(rule.percentage_above_limit);
-      fixedAddon = 13.50;
-      glassValue = 0;
-      glassPercentage = 0;
+  // 1. Base Value (Proteção Veicular)
+  // Segue a regra: Até fipe_limit -> fixed_price; Acima -> fipeValue * percentage_above_limit
+  let baseValue: number;
+  if (fipeValueNum <= Number(rule.fipe_limit)) {
+    baseValue = Number(rule.fixed_price);
+  } else {
+    baseValue = fipeValueNum * Number(rule.percentage_above_limit);
   }
 
-  const baseValue = fipeValue * fipePercentage;
+  // 2. Participation Value (Cota de Participação / Franquia)
+  // Segue a regra: Até participation_limit -> participation_fixed; Acima -> fipeValue * participation_percentage_above_limit
+  let participationValue: number;
+  if (fipeValueNum <= Number(rule.participation_limit)) {
+    participationValue = Number(rule.participation_fixed);
+  } else {
+    participationValue = fipeValueNum * Number(rule.participation_percentage_above_limit);
+  }
+
   const leilaoSinistroValue = hasLeilaoSinistro ? 39.90 : 0;
 
   let trackerValue = 0;
+  // Se a regra exige rastreador (ex: 7000 KG) ou se foi selecionado
   if (rule.tracker_required) {
     trackerValue = 50.00;
   } else {
@@ -97,29 +65,25 @@ export const calculateQuote = (
     if (trackerAddon) trackerValue = Number(trackerAddon.price);
   }
 
+  let glassPercentage = 0;
+  let glassValue = 0;
+
   const optionalAddonsValue = selectedAddons.reduce((acc, addon) => {
     const name = addon.name.toLowerCase();
-    if (name.includes('taxa administrativa') || name.includes('rastreador')) return acc;
+    // Pula se for rastreador (já processado) ou taxa (já inclusa como fixedAddon)
+    if (name.includes('taxa administrativa') || name.includes('rastreador') || name.includes('boleto')) return acc;
+    
     if (name.includes('vidro') || name.includes('farol') || name.includes('retrovisor') || name.includes('lanterna')) {
-      glassPercentage = 100;
+      glassPercentage = name.includes('100%') ? 100 : 50;
     }
     return acc + Number(addon.price);
   }, 0);
 
   const finalMonthlyValue = baseValue + fixedAddon + glassValue + trackerValue + leilaoSinistroValue + optionalAddonsValue;
 
-  let participationValue = 0;
-  if (fipeValue <= rule.participation_limit) {
-    participationValue = Number(rule.participation_fixed);
-  } else if (rule.participation_percentage_above_limit > 0) {
-    participationValue = fipeValue * Number(rule.participation_percentage_above_limit);
-  } else {
-    participationValue = Number(rule.participation_fixed);
-  }
-
   return {
-    fipeValue,
-    fipePercentage,
+    fipeValue: fipeValueNum,
+    fipePercentage: fipeValueNum > Number(rule.fipe_limit) ? Number(rule.percentage_above_limit) : 0,
     baseValue,
     fixedAddon,
     glassValue,
@@ -130,6 +94,6 @@ export const calculateQuote = (
     participationValue,
     categoryName,
     glassPercentage,
-    categoryType,
+    categoryType: 'OUTROS', // Mantido para compatibilidade, mas a lógica agora é baseada nos valores da rule
   };
 };

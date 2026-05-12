@@ -14,7 +14,8 @@ const ALLOWED_KEYWORDS_PUBLIC = [
   'terceiros',
   'vidro',
   'fipe',
-  'assistencial'
+  'assistencial',
+  'rastreador'
 ];
 
 // Nomes que devem ser BLOQUEADOS
@@ -44,7 +45,8 @@ const PublicQuote = () => {
     { id: 'h5', name: 'Indenização 100% FIPE (veículos com leilão ou sinistro)', price: 39.90, description: 'Proteção adicional para seu veículo.', active: true },
     { id: 'h6', name: 'Cobertura 100% para todos os vidros, retrovisores, faróis e lanternas (somente nacionais)', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
     { id: 'h7', name: 'Carro assistencial 7 dias', price: 9.90, description: 'Proteção adicional para seu veículo.', active: true },
-    { id: 'h8', name: 'Carro assistencial 15 dias', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true }
+    { id: 'h8', name: 'Carro assistencial 15 dias', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true },
+    { id: 'h9', name: 'Rastreador', price: 50.00, description: 'Proteção adicional para seu veículo.', active: true }
   ]);
   const [trackerRequired, setTrackerRequired] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -128,8 +130,6 @@ const PublicQuote = () => {
   const hasTracker = trackerRequired || addons.some(a => a.name.toLowerCase().includes('rastreador'));
 
   const handleWhatsApp = () => {
-    const displayValue = (Number(quote.final_monthly_value) - (calcResult?.fixedAddon ?? 13.50)).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-    const taxaValue = (calcResult?.fixedAddon ?? 13.50).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     const message = `Olá! Quero seguir com a minha associação da Auto Excelência.
 
 *🚗 DADOS DA COTAÇÃO*
@@ -137,8 +137,8 @@ Modelo: ${quote.brand} ${quote.model}
 Placa: ${quote.plate || '---'}
 Código FIPE: ${quote.fipe_code || '---'}
 Valor FIPE: R$ ${Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-Valor Mensal: R$ ${displayValue}
-+ R$ ${taxaValue} de taxa administrativa
+Valor Mensal Total: R$ ${Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+(Taxa administrativa inclusa)
 Adesão/Vistoria: R$ ${Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
 Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}
 
@@ -191,7 +191,7 @@ Link oficial: ${window.location.href}`;
               <div><span className="text-gray-500 block text-xs">Placa</span><strong className="text-gray-800">{quote.plate || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Código FIPE</span><strong className="text-gray-800">{quote.fipe_code || '---'}</strong></div>
               <div><span className="text-gray-500 block text-xs">Valor FIPE</span><strong className="text-gray-800">R$ {Number(quote.fipe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
-              <div><span className="text-gray-500 block text-xs">Valor mensal</span><strong className="text-gray-800">R$ {(Number(quote.final_monthly_value) - (calcResult?.fixedAddon ?? 13.50)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
+              <div><span className="text-gray-500 block text-xs">Valor mensal total</span><strong className="text-gray-800">R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Adesão e vistoria</span><strong className="text-gray-800">R$ {Number(quote.inspection_fee || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></div>
               <div><span className="text-gray-500 block text-xs">Data da cotação</span><strong className="text-gray-800">{format(new Date(quote.created_at), 'dd/MM/yyyy')}</strong></div>
               {(quote as any).consultant_name && (
@@ -206,11 +206,11 @@ Link oficial: ${window.location.href}`;
 
             <div className="mt-6 bg-secondary text-white rounded-2xl p-6 text-center shadow-xl shadow-secondary/20 relative overflow-hidden">
               <div className="relative z-10">
-                <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">Valor mensal</p>
+                <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-1">Valor Total Mensal</p>
                 <h3 className="text-5xl font-black text-white">
-                  R$ {(Number(quote.final_monthly_value) - (calcResult?.fixedAddon ?? 13.50)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {Number(quote.final_monthly_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </h3>
-                <p className="text-gray-400 text-xs mt-2">+ R$ {(calcResult?.fixedAddon ?? 13.50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de taxa administrativa</p>
+                <p className="text-gray-400 text-xs mt-2">Incluindo taxa administrativa de R$ {(calcResult?.fixedAddon ?? 13.50).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
               </div>
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary rounded-full blur-[60px] opacity-40"></div>
             </div>
