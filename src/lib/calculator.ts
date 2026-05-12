@@ -100,6 +100,9 @@ export const calculateQuote = (
   const optionalAddonsValue = selectedAddons.reduce((acc, addon) => {
     const name = addon.name.toLowerCase();
     if (name.includes('taxa administrativa') || name.includes('rastreador')) return acc;
+    if (name.includes('vidro') || name.includes('farol') || name.includes('retrovisor') || name.includes('lanterna')) {
+      glassPercentage = 100;
+    }
     return acc + Number(addon.price);
   }, 0);
 
