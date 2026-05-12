@@ -45,15 +45,63 @@ const AdminAdicionais = () => {
     }
   };
 
+  const handleResetToDefault = async () => {
+    if (!confirm('Isso irá desativar os serviços atuais e cadastrar apenas os 6 serviços padrão. Deseja continuar?')) return;
+    
+    setSaving(true);
+    try {
+      // Desativa todos os atuais
+      await supabase.from('addons').update({ active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+      const defaultAddons = [
+        { name: 'Alagamento', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: 'Guincho de 1000 km', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: 'Terceiros até R$ 300.000,00', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: '100% vidros/farol/retrovisor/lanterna nacional', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: 'Indenização 100% FIPE (veículos com leilão ou sinistro)', price: 39.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: 'Cobertura 100% para todos os vidros, retrovisores, faróis e lanternas (somente nacionais)', price: 19.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: 'Carro assistencial 7 dias', price: 9.90, description: 'Proteção adicional para seu veículo.', active: true },
+        { name: 'Carro assistencial 15 dias', price: 15.90, description: 'Proteção adicional para seu veículo.', active: true }
+      ];
+
+      for (const addon of defaultAddons) {
+        const { data: existing } = await supabase.from('addons').select('id').eq('name', addon.name).maybeSingle();
+        if (existing) {
+          await supabase.from('addons').update(addon).eq('id', existing.id);
+        } else {
+          await supabase.from('addons').insert(addon);
+        }
+      }
+      
+      fetchData();
+      alert('Lista de serviços resetada com sucesso!');
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao resetar lista.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" size={40} /></div>;
 
   return (
     <div className="space-y-8 pb-20">
-      <header>
-        <h1 className="text-2xl font-black text-secondary uppercase tracking-tight italic">
-          Serviços <span className="text-primary">Adicionais</span>
-        </h1>
-        <p className="text-gray-500 font-medium">Gerencie os opcionais oferecidos nas cotações.</p>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-secondary uppercase tracking-tight italic">
+            Serviços <span className="text-primary">Adicionais</span>
+          </h1>
+          <p className="text-gray-500 font-medium">Gerencie os opcionais oferecidos nas cotações.</p>
+        </div>
+        <button 
+          onClick={handleResetToDefault}
+          disabled={saving}
+          className="btn-secondary text-sm flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50"
+        >
+          {saving ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+          Resetar para Lista Padrão
+        </button>
       </header>
 
       <div className="card bg-gray-50 border-dashed border-2">

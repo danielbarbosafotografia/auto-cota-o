@@ -1,18 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_ANON_KEY
+  'https://ffkurwkjhwagxgnznlvy.supabase.co',
+  'sb_publishable_qCobH5qR2ef7f1yjl38xjQ_n5ccVm3D'
 );
 
-async function checkAddons() {
+async function listAddons() {
   const { data, error } = await supabase.from('addons').select('*');
   if (error) {
-    console.error('Erro:', error);
+    console.error('Erro ao buscar addons:', error);
   } else {
-    console.log(`Total de addons: ${data.length}`);
-    console.log('Addons atuais:', JSON.stringify(data, null, 2));
+    console.log('Addons atuais no banco:');
+    console.log(JSON.stringify(data, null, 2));
   }
 }
 
-checkAddons();
+listAddons();

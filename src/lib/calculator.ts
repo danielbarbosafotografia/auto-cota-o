@@ -53,37 +53,37 @@ export const calculateQuote = (
       fipePercentage = 0.0025;
       fixedAddon = 13.50;
       glassValue = 0;
-      glassPercentage = 60;
+      glassPercentage = 0;
       break;
     case 'IMPORTADO':
       fipePercentage = 0.0035;
       fixedAddon = 13.50;
-      glassValue = 15.90;
-      glassPercentage = 50;
+      glassValue = 0;
+      glassPercentage = 0;
       break;
     case 'CAMINHONETE_NACIONAL':
       fipePercentage = 0.0025;
       fixedAddon = 13.50;
-      glassValue = 19.90;
-      glassPercentage = 50;
+      glassValue = 0;
+      glassPercentage = 0;
       break;
     case 'CAMINHONETE_IMPORTADA':
       fipePercentage = 0.0035;
       fixedAddon = 13.50;
-      glassValue = 29.90;
-      glassPercentage = 50;
+      glassValue = 0;
+      glassPercentage = 0;
       break;
     case 'ESPECIAL':
       fipePercentage = 0.0045;
       fixedAddon = 3.50;
-      glassValue = 29.90;
-      glassPercentage = 50;
+      glassValue = 0;
+      glassPercentage = 0;
       break;
     default:
       fipePercentage = Number(rule.percentage_above_limit);
       fixedAddon = 13.50;
       glassValue = 0;
-      glassPercentage = 50;
+      glassPercentage = 0;
   }
 
   const baseValue = fipeValue * fipePercentage;
