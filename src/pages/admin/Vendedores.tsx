@@ -7,10 +7,6 @@ const AdminVendedores = () => {
   const [sellers, setSellers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSellers();
-  }, []);
-
   const fetchSellers = async () => {
     const { data } = await supabase
       .from('profiles')
@@ -20,6 +16,10 @@ const AdminVendedores = () => {
     if (data) setSellers(data);
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchSellers();
+  }, []);
 
   return (
     <div className="space-y-8">

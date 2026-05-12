@@ -22,10 +22,6 @@ const AdminRegras = () => {
     tracker_required: false
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     setLoading(true);
     const { data: catData } = await supabase.from('vehicle_categories').select('*');
@@ -35,6 +31,10 @@ const AdminRegras = () => {
     if (ruleData) setRules(ruleData);
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleEdit = (rule: PricingRule) => {
     setEditingId(rule.id);

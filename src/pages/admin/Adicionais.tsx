@@ -16,16 +16,16 @@ const AdminAdicionais = () => {
     active: true
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     setLoading(true);
     const { data } = await supabase.from('addons').select('*').order('name');
     if (data) setAddons(data);
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);

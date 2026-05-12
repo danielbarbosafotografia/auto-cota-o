@@ -25,10 +25,6 @@ const AdminDashboard = () => {
   });
   const [recentQuotes, setRecentQuotes] = useState<Quote[]>([]);
 
-  useEffect(() => {
-    fetchAdminData();
-  }, []);
-
   const fetchAdminData = async () => {
     try {
       const { count: totalQuotes } = await supabase.from('quotes').select('*', { count: 'exact', head: true });
@@ -62,6 +58,10 @@ const AdminDashboard = () => {
       console.error('Error fetching admin data:', error);
     }
   };
+
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">

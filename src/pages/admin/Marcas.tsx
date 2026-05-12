@@ -6,10 +6,6 @@ const AdminMarcas = () => {
   const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchModels();
-  }, []);
-
   const fetchModels = async () => {
     const { data } = await supabase
       .from('vehicle_models')
@@ -18,6 +14,10 @@ const AdminMarcas = () => {
     if (data) setModels(data);
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchModels();
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
